@@ -1,0 +1,14 @@
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\bin\Debug\net8.0\WebBanHang.Service.deps.json
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\bin\Debug\net8.0\WebBanHang.Service.dll
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\bin\Debug\net8.0\WebBanHang.Service.pdb
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.GeneratedMSBuildEditorConfig.editorconfig
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.AssemblyInfoInputs.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.AssemblyInfo.cs
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.csproj.CoreCompileInputs.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.dll
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\refint\WebBanHang.Service.dll
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.pdb
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\ref\WebBanHang.Service.dll
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\bin\Debug\net8.0\WebBanHang.Service.runtimeconfig.json
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.csproj.AssemblyReference.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang.Service\obj\Debug\net8.0\WebBanHang.Service.genruntimeconfig.cache

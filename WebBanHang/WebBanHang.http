@@ -1,0 +1,6 @@
+@WebBanHang_HostAddress = http://localhost:5277
+
+GET {{WebBanHang_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
