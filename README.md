@@ -1,66 +1,66 @@
+Markdown
+# 🛒 WebBanHang - Hệ Thống Thương Mại Điện Tử (E-Commerce)
 
-    %% 1. QUẢN LÝ NGƯỜI DÙNG
-    User ||--o{ UserRole : has
-    Role ||--o{ UserRole : has
-    User ||--o{ Address : saves
-    
-    %% 2. DANH MỤC & SẢN PHẨM
-    Category ||--o{ Category : "parent/child"
-    Category ||--o{ Product : contains
-    Brand ||--o{ Product : brands
-    Product ||--o{ ProductVariant : has_variants
-    Size ||--o{ ProductVariant : sizes
-    Color ||--o{ ProductVariant : colors
+Chào mừng bạn đến với dự án **WebBanHang**! Đây là một hệ thống bán lẻ trực tuyến được xây dựng bằng **ASP.NET Core** và **Entity Framework Core**. 
 
-    %% 3. KHO & GIỎ HÀNG
-    ProductVariant ||--o{ InventoryMovement : logs_stock
-    User ||--o{ InventoryMovement : "created by (admin)"
-    
-    User ||--o{ Cart : owns
-    Cart ||--o{ CartItem : contains
-    ProductVariant ||--o{ CartItem : added_as
+Dự án này được thiết kế với kiến trúc cơ sở dữ liệu chuẩn mực, hỗ trợ bán hàng đa biến thể (Size/Màu sắc), quản lý tồn kho chặt chẽ và theo dõi đơn hàng chi tiết. Nếu bạn là người mới, đừng lo lắng! Hướng dẫn dưới đây sẽ giúp bạn cài đặt và chạy dự án trên máy của mình chỉ trong vài phút.
 
-    %% 4. ĐƠN HÀNG & THANH TOÁN
-    User ||--o{ Order : places
-    Address ||--o{ Order : shipped_to
-    Order ||--o{ Payment : paid_via
-    Order ||--o{ OrderItem : contains
-    ProductVariant ||--o{ OrderItem : ordered_as
+---
 
-    %% 5. ĐÁNH GIÁ (REVIEW)
-    OrderItem ||--o| Review : "1-1 (Purchased = Reviewed)"
-    User ||--o{ Review : writes
+## 🛠️ Yêu cầu hệ thống (Prerequisites)
 
-Giải thích 5 Phân hệ (Modules) cốt lõi của hệ thống:
-1. Module Người dùng & Phân quyền (Users & Roles)
-Các bảng: User, Role, UserRole, Address.
+Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đặt các phần mềm sau:
+* **[Git](https://git-scm.com/)**: Để tải source code về máy.
+* **[.NET SDK 8.0](https://dotnet.microsoft.com/download)** (hoặc phiên bản tương ứng bạn đang dùng): Môi trường để chạy code C#.
+* **[SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)** (Bản Express hoặc Developer đều được): Để lưu trữ cơ sở dữ liệu.
+* **[Visual Studio 2022](https://visualstudio.microsoft.com/)** hoặc **[Visual Studio Code](https://code.visualstudio.com/)**.
 
-Cách hoạt động: Dùng cơ chế phân quyền N-N (Nhiều-Nhiều) qua bảng trung gian UserRole. Một người dùng có thể là Admin, Customer hoặc Manager. Bảng Address lưu danh sách địa chỉ nhận hàng của khách, có cờ IsDefault để tự động điền khi thanh toán.
+---
 
-2. Module Sản phẩm & Biến thể (Catalog & Variants)
-Các bảng: Category, Brand, Product, Size, Color, ProductVariant.
+## 🚀 Hướng dẫn cài đặt và chạy dự án (Getting Started)
 
-Cách hoạt động: Thiết kế này rất xịn! Thay vì nhồi nhét mọi thứ vào bảng Product, bạn tách ra.
+### Bước 1: Clone dự án về máy
+Mở Terminal (hoặc Command Prompt / Git Bash) và chạy các lệnh sau:
 
-Product chỉ lưu thông tin chung (Tên, Mô tả, Slug SEO).
 
-ProductVariant (Biến thể) là "ngôi sao" thực sự. Mỗi dòng kết hợp 1 Product + 1 Size + 1 Color tạo thành 1 mã SKU duy nhất để bán. Ví dụ: Áo thun (Product) + Màu Đen (Color) + Size L (Size) = Mã SKU: AO-DEN-L.
+git clone [https://github.com/Kendy205/API_UTC_WebBanGiay.git](https://github.com/TEN_CUA_BAN/WebBanHang.git)
+cd WebBanHang
+Bước 2: Cấu hình chuỗi kết nối Database (Connection String)
+Mở file appsettings.json (hoặc appsettings.Development.json) nằm trong thư mục project chính. Tìm đến mục ConnectionStrings và sửa lại thông tin Server cho khớp với SQL Server trên máy bạn:
 
-3. Module Quản lý Kho (Inventory)
-Các bảng: InventoryMovement.
+JSON
+"ConnectionStrings": {
+  "DefaultConnection": "Server=.\\SQLEXPRESS;Database=WebBanHangDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+}
+Bước 3: Khởi tạo Cơ sở dữ liệu (Database Migration)
+Mở Terminal tại thư mục chứa project (nơi có file .csproj) và chạy lệnh sau để Entity Framework tự động tạo bảng trong SQL Server:
 
-Cách hoạt động: Đây là tư duy của hệ thống lớn. Tồn kho (StockQuantity) trong ProductVariant thay đổi không phải bằng cách sửa trực tiếp, mà được log lại qua bảng InventoryMovement. Có người nhập hàng (IN), xuất hàng (OUT), mọi thao tác đều ghi lại ai làm, lý do gì, số lượng bao nhiêu. Rất dễ kiểm toán (Audit)!
+Bash
+dotnet ef database update
+(Lưu ý: Nếu máy bạn báo lỗi không tìm thấy lệnh dotnet ef, hãy chạy lệnh dotnet tool install --global dotnet-ef trước).
 
-4. Module Mua sắm (Cart & Checkout)
-Các bảng: Cart, CartItem, Order, OrderItem, Payment.
+Bước 4: Chạy ứng dụng
+Bạn có thể ấn nút Play (F5) trực tiếp trong Visual Studio, hoặc dùng lệnh sau trong Terminal:
 
-Cách hoạt động: * Khách chọn Variant -> Bỏ vào CartItem.
+Bash
+dotnet run
+Mở trình duyệt và truy cập vào đường dẫn được hiển thị trên Terminal (thường là https://localhost:5001 hoặc http://localhost:5000). Dự án đã chạy thành công! 🎉
 
-Lúc thanh toán -> Chốt thành Order và Payment.
+🗄️ Tổng quan Cơ sở dữ liệu (Database Overview)
+Hệ thống được chia thành 5 phân hệ (modules) chính để dễ dàng quản lý và mở rộng:
 
-Điểm sáng: Bảng OrderItem lưu lại "Snapshot" (Ảnh chụp lúc mua) của tên sản phẩm, size, màu, giá. Nếu 1 năm sau shop đổi tên sản phẩm đó, hóa đơn cũ của khách vẫn hiển thị đúng tên cũ!
+🧑‍💻 Phân hệ Người dùng & Phân quyền: Quản lý User, Role và địa chỉ giao hàng (Addresses).
 
-5. Module Tương tác (Reviews)
-Các bảng: Review.
+📦 Phân hệ Sản phẩm (Catalog): Quản lý Danh mục (Category), Thương hiệu (Brand), Sản phẩm (Product) và Biến thể sản phẩm (Product Variants - kết hợp Size & Color).
 
-Cách hoạt động: Trực tiếp liên kết 1-1 với OrderItem. Điều này khóa chặt nghiệp vụ: "Khách hàng phải mua món đồ đó (có OrderItem) thì mới được phép đánh giá, và mỗi món đồ trong đơn chỉ được đánh giá 1 lần". Đây là cơ chế "Verified Purchase" (Người mua thực sự) giống Shopee hay Amazon.
+🏭 Phân hệ Kho hàng (Inventory): Lưu vết mọi lịch sử nhập/xuất kho qua bảng inventory_movements, giúp kiểm toán dễ dàng mà không sợ thất thoát.
+
+🛒 Phân hệ Bán hàng: Xử lý logic Giỏ hàng (Carts) và chốt Đơn hàng (Orders). Thông tin sản phẩm lúc mua được lưu dưới dạng Snapshot để chống sai lệch dữ liệu về sau.
+
+⭐ Phân hệ Đánh giá (Reviews): Liên kết chuẩn xác 1-1 với chi tiết đơn hàng (OrderItem) để đảm bảo chỉ những người đã mua hàng mới được đánh giá.
+
+Sơ đồ Thực thể Liên kết (ERD)
+Dưới đây là sơ đồ cấu trúc các bảng trong hệ thống:
+https://drive.google.com/file/d/1NMQ6dNO9XQH6nyENWZ9Y3YJKGph0KfYa/view?usp=sharing
+🤝 Đóng góp (Contributing)
+Nếu bạn tìm thấy lỗi (bug) hoặc có ý tưởng cải thiện dự án, hãy tạo một Pull Request hoặc mở Issue. Mọi đóng góp của bạn đều được chào đón!
