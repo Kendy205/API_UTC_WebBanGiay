@@ -25,6 +25,8 @@ Mở Terminal (hoặc Command Prompt / Git Bash) và chạy các lệnh sau:
 
 git clone [https://github.com/Kendy205/API_UTC_WebBanGiay.git](https://github.com/TEN_CUA_BAN/WebBanHang.git)
 cd WebBanHang
+
+##
 Bước 2: Cấu hình chuỗi kết nối Database (Connection String)
 Mở file appsettings.json (hoặc appsettings.Development.json) nằm trong thư mục project chính. Tìm đến mục ConnectionStrings và sửa lại thông tin Server cho khớp với SQL Server trên máy bạn:
 
@@ -32,20 +34,21 @@ JSON
 "ConnectionStrings": {
   "DefaultConnection": "Server=.\\SQLEXPRESS;Database=WebBanHangDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 }
+##
 Bước 3: Khởi tạo Cơ sở dữ liệu (Database Migration)
 Mở Terminal tại thư mục chứa project (nơi có file .csproj) và chạy lệnh sau để Entity Framework tự động tạo bảng trong SQL Server:
 
 Bash
 dotnet ef database update
 (Lưu ý: Nếu máy bạn báo lỗi không tìm thấy lệnh dotnet ef, hãy chạy lệnh dotnet tool install --global dotnet-ef trước).
-
+##
 Bước 4: Chạy ứng dụng
 Bạn có thể ấn nút Play (F5) trực tiếp trong Visual Studio, hoặc dùng lệnh sau trong Terminal:
 
 Bash
 dotnet run
 Mở trình duyệt và truy cập vào đường dẫn được hiển thị trên Terminal (thường là https://localhost:5001 hoặc http://localhost:5000). Dự án đã chạy thành công! 🎉
-
+##
 🗄️ Tổng quan Cơ sở dữ liệu (Database Overview)
 Hệ thống được chia thành 5 phân hệ (modules) chính để dễ dàng quản lý và mở rộng:
 
