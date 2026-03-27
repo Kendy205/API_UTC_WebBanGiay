@@ -1,5 +1,5 @@
 Markdown
-# 🛒 WebBanHang - Hệ Thống Thương Mại Điện Tử (E-Commerce)
+# 🛒 WebBanHang - Hệ Thống Thương Mại Điện Tử (E-Commerce) - BackEnd
 
 Chào mừng bạn đến với dự án **WebBanHang**! Đây là một hệ thống bán lẻ trực tuyến được xây dựng bằng **ASP.NET Core** và **Entity Framework Core**. 
 
@@ -27,22 +27,41 @@ git clone [https://github.com/Kendy205/API_UTC_WebBanGiay.git](https://github.co
 cd WebBanHang
 
 ##
-Bước 2: Cấu hình chuỗi kết nối Database (Connection String)
+Bước 2:
+
+
+Cấu hình chuỗi kết nối Database (Connection String)
+
+
 Mở file appsettings.json (hoặc appsettings.Development.json) nằm trong thư mục project chính. Tìm đến mục ConnectionStrings và sửa lại thông tin Server cho khớp với SQL Server trên máy bạn:
 
-JSON
+appsetting
+
 "ConnectionStrings": {
+
+
   "DefaultConnection": "Server=.\\SQLEXPRESS;Database=WebBanHangDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 }
+
+
 ##
-Bước 3: Khởi tạo Cơ sở dữ liệu (Database Migration)
+Bước 3: 
+
+
+Khởi tạo Cơ sở dữ liệu (Database Migration)
+
+
 Mở Terminal tại thư mục chứa project (nơi có file .csproj) và chạy lệnh sau để Entity Framework tự động tạo bảng trong SQL Server:
 
 Bash
 dotnet ef database update
+
+
 (Lưu ý: Nếu máy bạn báo lỗi không tìm thấy lệnh dotnet ef, hãy chạy lệnh dotnet tool install --global dotnet-ef trước).
 ##
 Bước 4: Chạy ứng dụng
+
+
 Bạn có thể ấn nút Play (F5) trực tiếp trong Visual Studio, hoặc dùng lệnh sau trong Terminal:
 
 Bash
