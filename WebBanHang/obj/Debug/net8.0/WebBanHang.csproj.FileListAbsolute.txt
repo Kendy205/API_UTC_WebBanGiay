@@ -1,11 +1,3 @@
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.csproj.AssemblyReference.cache
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\rpswa.dswa.cache.json
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.GeneratedMSBuildEditorConfig.editorconfig
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.AssemblyInfoInputs.cache
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.AssemblyInfo.cs
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.csproj.CoreCompileInputs.cache
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.MvcApplicationPartsAssemblyInfo.cs
-D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.MvcApplicationPartsAssemblyInfo.cache
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\appsettings.Development.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\appsettings.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.staticwebassets.endpoints.json
@@ -135,6 +127,15 @@ D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.Service.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.Data.pdb
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.Model.pdb
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.Service.pdb
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.csproj.AssemblyReference.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.GeneratedMSBuildEditorConfig.editorconfig
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.AssemblyInfoInputs.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.AssemblyInfo.cs
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.csproj.CoreCompileInputs.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.MvcApplicationPartsAssemblyInfo.cs
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.MvcApplicationPartsAssemblyInfo.cache
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.sourcelink.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\rjimswa.dswa.cache.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
