@@ -6,8 +6,10 @@ D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.deps.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.runtimeconfig.json
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\WebBanHang.pdb
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\AutoMapper.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\Azure.Core.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\Azure.Identity.dll
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\BCrypt.Net-Next.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\Humanizer.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\Microsoft.CodeAnalysis.dll
@@ -151,3 +153,4 @@ D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\refint\WebBanHang.dll
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.pdb
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\WebBanHang.genruntimeconfig.cache
 D:\hoc tap\API_UTC\WebBanHang\WebBanHang\obj\Debug\net8.0\ref\WebBanHang.dll
+D:\hoc tap\API_UTC\WebBanHang\WebBanHang\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

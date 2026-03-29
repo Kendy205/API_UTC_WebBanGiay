@@ -40,6 +40,8 @@ namespace WebBanHang.Model
         [MaxLength(20)]
         [Column("status")]
         public string Status { get; set; } = "active";
+        public String RefreshToken { get; set; } = string.Empty;
+        public DateTime RefreshTokenExpiryTime { get; set; }
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

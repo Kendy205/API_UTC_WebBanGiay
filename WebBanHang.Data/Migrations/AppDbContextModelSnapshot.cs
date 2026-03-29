@@ -765,6 +765,13 @@ namespace WebBanHang.Data.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("phone");
 
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)

@@ -197,7 +197,14 @@
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "D:\\hoc tap\\API_UTC\\WebBanHang\\WebBanHang.Data\\WebBanHang.Data.csproj": {
+                "projectPath": "D:\\hoc tap\\API_UTC\\WebBanHang\\WebBanHang.Data\\WebBanHang.Data.csproj"
+              },
+              "D:\\hoc tap\\API_UTC\\WebBanHang\\WebBanHang.Model\\WebBanHang.Model.csproj": {
+                "projectPath": "D:\\hoc tap\\API_UTC\\WebBanHang\\WebBanHang.Model\\WebBanHang.Model.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -216,6 +223,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "AutoMapper": {
+              "target": "Package",
+              "version": "[13.0.1, )"
+            },
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.1.0, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.18, )"
@@ -307,6 +322,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "AutoMapper": {
+              "target": "Package",
+              "version": "[13.0.1, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[8.0.18, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.18, )"

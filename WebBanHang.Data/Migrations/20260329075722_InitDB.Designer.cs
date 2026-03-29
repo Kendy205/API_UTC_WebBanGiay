@@ -12,8 +12,8 @@ using WebBanHang.Data;
 namespace WebBanHang.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260327141020_initDB")]
-    partial class initDB
+    [Migration("20260329075722_InitDB")]
+    partial class InitDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -767,6 +767,13 @@ namespace WebBanHang.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("phone");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
