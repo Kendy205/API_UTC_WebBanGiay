@@ -48,6 +48,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "WebBanHang.Controllers.CartController.CartController",
+    "Method": "getCartByUserId",
+    "RelativePath": "api/Cart",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "WebBanHang.Controllers.ProductController.ProductController",
     "Method": "GetAllProduct",
     "RelativePath": "api/Product",
@@ -58,24 +68,29 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebBanHang.Controllers.WeatherForecastController",
-    "Method": "Get",
-    "RelativePath": "WeatherForecast",
+    "ContainingType": "WebBanHang.Controllers.ProductVariantController.ProductVariantController",
+    "Method": "getProductVariant",
+    "RelativePath": "api/ProductVariant",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [],
-    "ReturnTypes": [
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebBanHang.Controllers.ProductVariantController.ProductVariantController",
+    "Method": "getProductVariantById",
+    "RelativePath": "api/ProductVariant/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
       {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[WebBanHang.WeatherForecast, WebBanHang, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
+        "Name": "id",
+        "Type": "System.Int64",
+        "IsRequired": true
       }
     ],
-    "EndpointName": "GetWeatherForecast"
+    "ReturnTypes": []
   }
 ]

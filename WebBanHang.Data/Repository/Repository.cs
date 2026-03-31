@@ -22,15 +22,20 @@ namespace WebBanHang.Repository
 
         public async Task AddAsync(T entity) { await dbSet.AddAsync(entity); }
 
-        public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>>? filter = null, string? includeProperties = null)
+        public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>>? filter = null, string? includeProperties = null, int? pageSize = null, int? pageNumber = null)
         {
             IQueryable<T> query = dbSet;
             if (filter != null) query = query.Where(filter);
+            if (pageSize.HasValue && pageNumber.HasValue)
+            {
+                query = query.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value);
+            }
             if (includeProperties != null) {
                 foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) {
                     query = query.Include(includeProp);
                 }
             }
+           
             return await query.ToListAsync();
         }
 
