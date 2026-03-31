@@ -91,3 +91,9 @@ _ReSharper*/
 
 # Others
 node_modules/
+GEMINI.md
+GUIDE_ORDER_API.md
+api_utc_db.sql
+bin/
+obj/
+.vs/

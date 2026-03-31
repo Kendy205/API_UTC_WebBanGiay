@@ -28,9 +28,10 @@ namespace WebBanHang.Profiles
                 .ReverseMap();
 
             CreateMap<Order, OrderDto>()
-                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName)); // Hoặc FullName nếu có
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName))
+                .ReverseMap();
 
-            CreateMap<OrderItem, OrderItemDto>();
+            CreateMap<OrderItem, OrderItemDto>().ReverseMap();
 
             // Map cơ bản cho các bảng khác
             CreateMap<Category, CategoryDto>().ReverseMap();
