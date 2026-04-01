@@ -35,6 +35,18 @@ namespace WebBanHang.Profiles
             // Map cơ bản cho các bảng khác
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
+
+            // ── CART & CARTITEM MAPPINGS ──────────────────────────
+            CreateMap<CartItem, CartItemDto>()
+                .ForMember(dest => dest.VariantSku, opt => opt.MapFrom(src => src.ProductVariant.Sku))
+                .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductVariant.Size.SizeLabel))
+                .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductVariant.Product.ProductName))
+                .ReverseMap();
+
+            CreateMap<Cart, CartDto>()
+                .ForMember(dest => dest.CartItems, opt => opt.MapFrom(src => src.CartItems))
+                .ReverseMap();
         }
     }
 }
