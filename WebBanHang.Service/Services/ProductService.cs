@@ -28,7 +28,7 @@ namespace WebBanHang.BLL.Services
         public async Task<ProductDto?> GetByIdAsync(long id)
         {
             // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.ProductId == id) vào nhé.
-            var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
+            var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id, "Category,Brand");
             return _mapper.Map<ProductDto>(entity); // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
         }
 
