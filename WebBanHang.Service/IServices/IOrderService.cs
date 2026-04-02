@@ -8,6 +8,7 @@ namespace WebBanHang.BLL.IServices
     {
         Task<IEnumerable<OrderDto>> GetAllAsync();
         Task<OrderDto?> GetByIdAsync(long id);
+        Task<OrderDto?> CreateOrderFromCart(long cartId);
         Task AddAsync(OrderDto dto);
         Task UpdateAsync(long id, OrderDto dto);
         Task DeleteAsync(long id);

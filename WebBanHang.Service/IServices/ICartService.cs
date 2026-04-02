@@ -11,5 +11,7 @@ namespace WebBanHang.BLL.IServices
         Task AddAsync(CartDto dto);
         Task UpdateAsync(long id, CartDto dto);
         Task DeleteAsync(long id);
+
+        Task<CartDto> GetCartByUserId(long userId); 
     }
 }

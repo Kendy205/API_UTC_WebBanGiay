@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+
+using System.Security.Claims;
 using WebBanHang.BLL.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
@@ -60,6 +61,11 @@ namespace WebBanHang.BLL.Services
                 _unitOfWork.Order.Remove(entity);
                 await _unitOfWork.SaveAsync();
             }
+        }
+
+        public Task<OrderDto?> CreateOrderFromCart(long cartId)
+        {
+            throw new NotImplementedException();
         }
     }
 }

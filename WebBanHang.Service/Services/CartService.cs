@@ -61,5 +61,11 @@ namespace WebBanHang.BLL.Services
                 await _unitOfWork.SaveAsync();
             }
         }
+
+        public async Task<CartDto> GetCartByUserId(long userId)
+        {
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId, "CartItems");
+            return _mapper.Map<CartDto>(entity);
+        }
     }
 }
