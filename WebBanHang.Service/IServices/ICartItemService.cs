@@ -9,8 +9,8 @@ namespace WebBanHang.BLL.IServices
         /// <summary>Lấy danh sách item theo cartId (không kèm cart)</summary>
         Task<IEnumerable<CartItemDto>> GetCartItemsByCartIdAsync(long cartId);
 
-        /// <summary>Thêm sản phẩm vào giỏ, trả về toàn bộ cart sau khi thêm</summary>
-        Task<CartDto> AddProductToCartAsync(long cartId, long variantId, int quantity);
+        /// <summary>Thêm sản phẩm vào giỏ</summary>
+        Task AddProductToCartAsync(long cartId, long variantId, int quantity);
 
         /// <summary>Cập nhật số lượng item, trả về toàn bộ cart sau khi cập nhật</summary>
         Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity);

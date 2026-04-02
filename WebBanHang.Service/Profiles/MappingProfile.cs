@@ -45,7 +45,7 @@ namespace WebBanHang.Profiles
                 .ReverseMap();
 
             CreateMap<Cart, CartDto>()
-                .ForMember(dest => dest.CartItems, opt => opt.MapFrom(src => src.CartItems))
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems))
                 .ReverseMap();
         }
     }

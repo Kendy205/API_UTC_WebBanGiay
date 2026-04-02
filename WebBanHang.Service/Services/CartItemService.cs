@@ -32,8 +32,11 @@ namespace WebBanHang.BLL.Services
             return _mapper.Map<IEnumerable<CartItemDto>>(entities);
         }
 
-        public async Task<CartDto> AddProductToCartAsync(long cartId, long variantId, int quantity)
+        public async Task AddProductToCartAsync(long cartId, long variantId, int quantity)
         {
+            var v = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == variantId);
+            if (quantity > v.StockQuantity)
+                throw new InvalidOperationException("vượt quá số lượng tồn kho");
             // Kiểm tra sản phẩm đã tồn tại trong giỏ chưa
             var existingItem = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(
                 x => x.CartId == cartId && x.VariantId == variantId
@@ -41,7 +44,7 @@ namespace WebBanHang.BLL.Services
 
             if (existingItem != null)
             {
-                existingItem.Quantity += quantity;
+                existingItem.Quantity = quantity;
                 _unitOfWork.CartItem.Update(existingItem);
             }
             else
@@ -66,33 +69,30 @@ namespace WebBanHang.BLL.Services
 
             await _unitOfWork.SaveAsync();
 
-            // Trả về toàn bộ giỏ hàng đã cập nhật
-            return await _cartService.GetByIdAsync(cartId)
-                ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi thêm sản phẩm");
         }
 
-        public async Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
-        {
-            if (newQuantity <= 0)
-                throw new ArgumentException("Số lượng phải lớn hơn 0");
-            var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
-            if (entity == null)
-                throw new InvalidOperationException("Không tìm thấy CartItem");
-            var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == entity.VariantId);
-            if(newQuantity > variant.StockQuantity)
-                throw new InvalidOperationException("vượt quá số lượng tồn kho");
+        //public async Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
+        //{
+        //    if (newQuantity <= 0)
+        //        throw new ArgumentException("Số lượng phải lớn hơn 0");
+        //    var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
+        //    if (entity == null)
+        //        throw new InvalidOperationException("Không tìm thấy CartItem");
+        //    var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == entity.VariantId);
+        //    if(newQuantity > variant.StockQuantity)
+        //        throw new InvalidOperationException("vượt quá số lượng tồn kho");
 
-            if (newQuantity == 0)
-                return await RemoveFromCartAsync(cartItemId);
+        //    if (newQuantity == 0)
+        //        return await RemoveFromCartAsync(cartItemId);
 
-            long cartId = entity.CartId;
-            entity.Quantity = newQuantity;
-            _unitOfWork.CartItem.Update(entity);
-            await _unitOfWork.SaveAsync();
+        //    long cartId = entity.CartId;
+        //    entity.Quantity = newQuantity;
+        //    _unitOfWork.CartItem.Update(entity);
+        //    await _unitOfWork.SaveAsync();
 
-            return await _cartService.GetByIdAsync(cartId)
-                ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi cập nhật");
-        }
+        //    return await _cartService.GetByIdAsync(cartId)
+        //        ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi cập nhật");
+        //}
 
         public async Task<CartDto> RemoveFromCartAsync(long cartItemId)
         {
