@@ -43,10 +43,12 @@ namespace WebBanHang.Service.Services
                 PasswordHash = passwordHash,
                 //CreatedAt = DateTime.UtcNow
             };
+
             var newCart = new Cart
             {
                 User = newUser
             };
+
             await _unitOfWork.User.AddAsync(newUser);
             await _unitOfWork.Cart.AddAsync(newCart);
             await _unitOfWork.SaveAsync();
@@ -60,8 +62,8 @@ namespace WebBanHang.Service.Services
         }
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var user = await _unitOfWork.User.GetFirstOrDefaultAsync(u => u.Email == dto.Email);
-
+            var user = await _unitOfWork.User.GetFirstOrDefaultAsync(u => u.Email == dto.Email, "UserRoles");
+            
             if (user == null )
                 return new AuthResponseDto { Message = "Sai email " };
             if(!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
@@ -131,13 +133,23 @@ namespace WebBanHang.Service.Services
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"]);
+            string role = user.UserRoles.FirstOrDefault()?.RoleId.ToString() ?? string.Empty;
+            if(role == "1")
+            {
+                role = "ADMIN";
+            }
+            else if(role == "2")
+            {
+                role = "CUSTOMER";
+            }
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                
                 Subject = new ClaimsIdentity(new[]
                 {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.UserRoles.FirstOrDefault()?.RoleId.ToString() ?? string.Empty)
+            new Claim(ClaimTypes.Role, role)
         }),
                 Expires = DateTime.UtcNow.AddMinutes(30), // thời gian Access Token  sống 
                 Issuer = _config["Jwt:Issuer"],

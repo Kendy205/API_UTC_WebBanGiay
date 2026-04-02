@@ -21,7 +21,7 @@ namespace WebBanHang.BLL.Services
 
         public async Task<IEnumerable<ProductDto>> GetAllAsync()
         {
-            var entities = await _unitOfWork.Product.GetAllAsync();
+            var entities = await _unitOfWork.Product.GetAllAsync(null, "Category,Brand");
             return _mapper.Map<IEnumerable<ProductDto>>(entities);
         }
 
