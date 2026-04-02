@@ -43,8 +43,14 @@ namespace WebBanHang.Service.Services
                 PasswordHash = passwordHash,
                 //CreatedAt = DateTime.UtcNow
             };
-            
+
+            var newCart = new Cart
+            {
+                User = newUser
+            };
+
             await _unitOfWork.User.AddAsync(newUser);
+            await _unitOfWork.Cart.AddAsync(newCart);
             await _unitOfWork.SaveAsync();
 
             // 4. Gán quyền mặc định (Role Customer = 2)
@@ -121,7 +127,7 @@ namespace WebBanHang.Service.Services
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
-        }
+        } 
 
         private string GenerateAccessToken(User user)
         {
@@ -145,7 +151,7 @@ namespace WebBanHang.Service.Services
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, role)
         }),
-                Expires = DateTime.UtcNow.AddMinutes(15), // Access Token chỉ sống 15 phút
+                Expires = DateTime.UtcNow.AddMinutes(30), // thời gian Access Token  sống 
                 Issuer = _config["Jwt:Issuer"],
                 Audience = _config["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

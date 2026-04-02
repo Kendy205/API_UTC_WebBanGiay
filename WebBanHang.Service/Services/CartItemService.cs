@@ -1,6 +1,8 @@
-﻿using AutoMapper;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using WebBanHang.BLL.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
@@ -12,54 +14,112 @@ namespace WebBanHang.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ICartService _cartService;
 
-        public CartItemService(IUnitOfWork unitOfWork, IMapper mapper)
+        public CartItemService(IUnitOfWork unitOfWork, IMapper mapper, ICartService cartService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _cartService = cartService;
         }
-
-        public async Task<IEnumerable<CartItemDto>> GetAllAsync()
+         
+        public async Task<IEnumerable<CartItemDto>> GetCartItemsByCartIdAsync(long cartId)
         {
-            var entities = await _unitOfWork.CartItem.GetAllAsync();
+            var entities = await _unitOfWork.CartItem.GetAllAsync(
+                x => x.CartId == cartId,
+                includeProperties: "ProductVariant,ProductVariant.Size,ProductVariant.Color,ProductVariant.Product"
+            );
             return _mapper.Map<IEnumerable<CartItemDto>>(entities);
         }
 
-        public async Task<CartItemDto?> GetByIdAsync(long id)
+        public async Task AddProductToCartAsync(long cartId, long variantId, int quantity)
         {
-            // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.CartItemId == id) vào nhé.
-           var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == id);
-            return _mapper.Map<CartItemDto>(entity); // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
-        }
+            var v = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == variantId);
+            if (quantity > v.StockQuantity)
+                throw new InvalidOperationException("vượt quá số lượng tồn kho");
+            // Kiểm tra sản phẩm đã tồn tại trong giỏ chưa
+            var existingItem = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(
+                x => x.CartId == cartId && x.VariantId == variantId
+            );
 
-        public async Task AddAsync(CartItemDto dto)
-        {
-            var entity = _mapper.Map<CartItem>(dto);
-            await _unitOfWork.CartItem.AddAsync(entity);
+            if (existingItem != null)
+            {
+                existingItem.Quantity = quantity;
+                _unitOfWork.CartItem.Update(existingItem);
+            }
+            else
+            {
+                var variant =await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(
+                    x => x.VariantId == variantId,
+                    includeProperties :"Product"
+                );
+                if (variant == null)
+                    throw new InvalidOperationException("Không thấy biến thể");
+
+                var newItem = new CartItem
+                {
+                    CartId = cartId,
+                    VariantId = variantId,
+                    Quantity = quantity,
+                    UnitPrice = (decimal)(variant.Product.SalePrice ?? variant.Product.BasePrice),
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _unitOfWork.CartItem.AddAsync(newItem);
+            }
+
             await _unitOfWork.SaveAsync();
+
         }
 
-        public async Task UpdateAsync(long id, CartItemDto dto)
+        //public async Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
+        //{
+        //    if (newQuantity <= 0)
+        //        throw new ArgumentException("Số lượng phải lớn hơn 0");
+        //    var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
+        //    if (entity == null)
+        //        throw new InvalidOperationException("Không tìm thấy CartItem");
+        //    var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == entity.VariantId);
+        //    if(newQuantity > variant.StockQuantity)
+        //        throw new InvalidOperationException("vượt quá số lượng tồn kho");
+
+        //    if (newQuantity == 0)
+        //        return await RemoveFromCartAsync(cartItemId);
+
+        //    long cartId = entity.CartId;
+        //    entity.Quantity = newQuantity;
+        //    _unitOfWork.CartItem.Update(entity);
+        //    await _unitOfWork.SaveAsync();
+
+        //    return await _cartService.GetByIdAsync(cartId)
+        //        ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi cập nhật");
+        //}
+
+        public async Task<CartDto> RemoveFromCartAsync(long cartItemId)
         {
-            // TODO: Tìm entity cũ theo id, sau đó map đè dữ liệu
-            var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == id);
-            if (entity != null)
-            {
-                _mapper.Map(dto, entity);
-                _unitOfWork.CartItem.Update(entity);
-                await _unitOfWork.SaveAsync();
-            }
+            var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
+            if (entity == null)
+                throw new InvalidOperationException("Không tìm thấy CartItem");
+
+            long cartId = entity.CartId;
+            _unitOfWork.CartItem.Remove(entity);
+            await _unitOfWork.SaveAsync();
+
+            return await _cartService.GetByIdAsync(cartId)
+                ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi xóa sản phẩm");
         }
 
-        public async Task DeleteAsync(long id)
+        public async Task<bool> ClearCartAsync(long cartId)
         {
-            // TODO: Tìm entity cũ theo id, sau đó xóa
-            var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == id);
-            if (entity != null)
+            var items = await _unitOfWork.CartItem.GetAllAsync(x => x.CartId == cartId);
+            if (!items.Any()) return true;
+
+            foreach (var item in items)
             {
-                _unitOfWork.CartItem.Remove(entity);
-                await _unitOfWork.SaveAsync();
+                _unitOfWork.CartItem.Remove(item);
             }
+
+            await _unitOfWork.SaveAsync();
+            return true;
         }
     }
 }
