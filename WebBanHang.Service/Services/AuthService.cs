@@ -56,14 +56,16 @@ namespace WebBanHang.Service.Services
         }
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var user = await _unitOfWork.User.GetFirstOrDefaultAsync(u => u.Email == dto.Email);
+            // Bổ sung includeProperties: "UserRoles" để lấy thông tin quyền
+            var user = await _unitOfWork.User.GetFirstOrDefaultAsync(u => u.Email == dto.Email, includeProperties: "UserRoles");
 
             if (user == null )
                 return new AuthResponseDto { Message = "Sai email " };
             if(!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return new AuthResponseDto { Message = "Sai  mật khẩu!" };
-            // Tạo JWT Access Token (giống cũ, nhưng nên set sống ngắn lại, vd: 15 phút)
+            // Tạo JWT Access Token
             var accessToken = GenerateAccessToken(user);
+            // ... (giữ nguyên phần còn lại)
 
             // Tạo Refresh Token (chuỗi ngẫu nhiên)
             var refreshToken = GenerateRefreshToken();

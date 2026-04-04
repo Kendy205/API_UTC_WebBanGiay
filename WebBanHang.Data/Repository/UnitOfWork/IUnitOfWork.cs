@@ -25,5 +25,6 @@ namespace WebBanHang.Repository.UnitOfWork
         IUserRoleRepository UserRole { get; }
 
         Task<int> SaveAsync();
+        Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync();
     }
 }

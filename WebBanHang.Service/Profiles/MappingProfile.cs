@@ -33,6 +33,9 @@ namespace WebBanHang.Profiles
 
             CreateMap<OrderItem, OrderItemDto>().ReverseMap();
 
+            // Map cho Address
+            CreateMap<Address, AddressDto>().ReverseMap();
+
             // Map cơ bản cho các bảng khác
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
