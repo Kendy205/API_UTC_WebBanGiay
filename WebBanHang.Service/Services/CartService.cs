@@ -1,6 +1,6 @@
-﻿using AutoMapper;
-using System.Collections.Generic;
+﻿using System;
 using System.Threading.Tasks;
+using AutoMapper;
 using WebBanHang.BLL.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
@@ -18,48 +18,65 @@ namespace WebBanHang.BLL.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-
-        public async Task<IEnumerable<CartDto>> GetAllAsync()
-        {
-            var entities = await _unitOfWork.Cart.GetAllAsync();
-            return _mapper.Map<IEnumerable<CartDto>>(entities);
-        }
-
+         
         public async Task<CartDto?> GetByIdAsync(long id)
         {
-            // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.CartId == id) vào nhé.
-           var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.CartId == id);
-            return _mapper.Map<CartDto>(entity); // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
+                x => x.CartId == id,
+                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
+            );
+            return _mapper.Map<CartDto>(entity);
         }
 
-        public async Task AddAsync(CartDto dto)
+        public async Task<CartDto> GetOrCreateCartForUserAsync(long userId)
         {
-            var entity = _mapper.Map<Cart>(dto);
-            await _unitOfWork.Cart.AddAsync(entity);
+            var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
+                x => x.UserId == userId && x.Status == "active",
+                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
+            );
+
+            if (activeCart != null)
+                return _mapper.Map<CartDto>(activeCart);
+
+            var newCart = new Cart
+            {
+                UserId = userId,
+                Status = "active",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Cart.AddAsync(newCart);
             await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<CartDto>(newCart);
         }
 
-        public async Task UpdateAsync(long id, CartDto dto)
+        public async Task<CartDto?> GetActiveCartByUserIdAsync(long userId)
         {
-            // TODO: Tìm entity cũ theo id, sau đó map đè dữ liệu
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.CartId == id);
-            if (entity != null)
-            {
-                _mapper.Map(dto, entity);
-                _unitOfWork.Cart.Update(entity);
-                await _unitOfWork.SaveAsync();
-            }
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
+                x => x.UserId == userId && x.Status == "active",
+                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
+            );
+            return _mapper.Map<CartDto>(entity);
         }
 
-        public async Task DeleteAsync(long id)
+        public async Task<bool> UpdateStatusAsync(long cartId, string newStatus)
         {
-            // TODO: Tìm entity cũ theo id, sau đó xóa
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.CartId == id);
-            if (entity != null)
-            {
-                _unitOfWork.Cart.Remove(entity);
-                await _unitOfWork.SaveAsync();
-            }
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.CartId == cartId);
+            if (entity == null) return false;
+
+            entity.Status = newStatus;
+            entity.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Cart.Update(entity);
+            await _unitOfWork.SaveAsync();
+            return true;
+        }
+
+        public async Task<CartDto> GetCartByUserId(long userId)
+        {
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId, "CartItems");
+            return _mapper.Map<CartDto>(entity);
         }
     }
 }
