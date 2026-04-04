@@ -9,7 +9,7 @@ namespace WebBanHang.BLL.IServices
         Task<IEnumerable<ProductDto>> GetAllAsync();
       
         Task<ProductDto?> GetByIdAsync(long id);
-        Task AddAsync(ProductDto dto);
+        Task <ProductDto> AddAsync(ProductDto dto);
         Task UpdateAsync(long id, ProductDto dto);
         Task DeleteAsync(long id);
     }

@@ -32,11 +32,12 @@ namespace WebBanHang.BLL.Services
             return _mapper.Map<ProductDto>(entity); // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
         }
 
-        public async Task AddAsync(ProductDto dto)
+        public async Task<ProductDto> AddAsync(ProductDto dto)
         {
             var entity = _mapper.Map<Product>(dto);
             await _unitOfWork.Product.AddAsync(entity);
             await _unitOfWork.SaveAsync();
+            return _mapper.Map<ProductDto>(entity);
         }
 
         public async Task UpdateAsync(long id, ProductDto dto)

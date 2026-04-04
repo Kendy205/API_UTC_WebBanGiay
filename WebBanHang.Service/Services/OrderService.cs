@@ -1,7 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
-
-using System.Security.Claims;
 using WebBanHang.BLL.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;

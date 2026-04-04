@@ -8,6 +8,7 @@ using WebBanHang.BLL.IServices;
 using WebBanHang.BLL.Services;
 using WebBanHang.Data;
 using WebBanHang.Repository.UnitOfWork;
+using WebBanHang.Service.Helpers;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.Services;
 var builder = WebApplication.CreateBuilder(args);
@@ -72,6 +73,11 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();  // Cho phép mọi header gửi lên
     });
 });
+// Đọc cấu hình từ appsettings.json map vào class CloudinarySettings
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
+// Đăng ký Service
+builder.Services.AddScoped<IPhotoService, PhotoService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

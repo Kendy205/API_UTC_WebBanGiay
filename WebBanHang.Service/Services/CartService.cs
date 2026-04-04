@@ -78,5 +78,20 @@ namespace WebBanHang.BLL.Services
             var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId, "CartItems");
             return _mapper.Map<CartDto>(entity);
         }
+
+        public Task AddAsync(CartDto dto)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateAsync(long id, CartDto dto)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteAsync(long id)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

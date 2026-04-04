@@ -121,5 +121,10 @@ namespace WebBanHang.BLL.Services
             await _unitOfWork.SaveAsync();
             return true;
         }
+
+        public Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
