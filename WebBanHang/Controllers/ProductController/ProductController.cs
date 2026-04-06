@@ -10,10 +10,12 @@ namespace WebBanHang.Controllers.ProductController
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
+        private readonly IProductVariantService _variantService;
 
-        public ProductController(IProductService productService)
+        public ProductController(IProductService productService, IProductVariantService variantService)
         {
             _productService = productService;
+            _variantService = variantService;
         }
 
         // GET: api/product
@@ -29,7 +31,7 @@ namespace WebBanHang.Controllers.ProductController
         public async Task<IActionResult> GetById(long id)
         {
             var product = await _productService.GetByIdAsync(id);
-
+            product.Variants = (List<ProductVariantDto>?)await _variantService.GetByProductIdAsync(id); // Lấy biến thể cho sản phẩm
             if (product == null)
                 return NotFound(ApiResponse<ProductDto>.Failed("Không tìm thấy sản phẩm!", 404));
 

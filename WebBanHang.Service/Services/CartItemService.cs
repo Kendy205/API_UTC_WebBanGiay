@@ -122,9 +122,26 @@ namespace WebBanHang.BLL.Services
             return true;
         }
 
-        public Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
+        public async Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
         {
-            throw new NotImplementedException();
+            var cartItem = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
+            if (cartItem == null)
+                throw new InvalidOperationException("Không tìm thấy CartItem");
+
+            var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == cartItem.VariantId);
+            if (newQuantity > variant.StockQuantity)
+                throw new InvalidOperationException("vượt quá số lượng tồn kho");
+
+            if (newQuantity == 0)
+                return await RemoveFromCartAsync(cartItemId);
+
+            long cartId = cartItem.CartId;
+            cartItem.Quantity = newQuantity;
+            _unitOfWork.CartItem.Update(cartItem);
+            await _unitOfWork.SaveAsync();
+
+            return await _cartService.GetByIdAsync(cartId)
+                ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi cập nhật");
         }
     }
 }

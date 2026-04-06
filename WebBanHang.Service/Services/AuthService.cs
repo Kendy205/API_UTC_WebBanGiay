@@ -47,6 +47,7 @@ namespace WebBanHang.Service.Services
             var newCart = new Cart
             {
                 User = newUser
+                
             };
 
             await _unitOfWork.User.AddAsync(newUser);

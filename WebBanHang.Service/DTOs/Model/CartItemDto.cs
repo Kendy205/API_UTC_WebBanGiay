@@ -4,8 +4,10 @@
     {
         public long CartItemId { get; set; } 
         public long CartId { get; set; } 
+        public long ProductId { get; set; }
         public long VariantId { get; set; } 
         public int Quantity { get; set; } 
+        public int StockQuantity { get; set; }
         public decimal UnitPrice { get; set; } 
         public DateTime CreatedAt { get; set; } 
 

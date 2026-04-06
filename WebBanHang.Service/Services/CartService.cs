@@ -56,7 +56,7 @@ namespace WebBanHang.BLL.Services
         {
             var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
                 x => x.UserId == userId && x.Status == "active",
-                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
+                includeProperties: "CartItems,CartItems.ProductVariant.Product,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color"
             );
             return _mapper.Map<CartDto>(entity);
         }
