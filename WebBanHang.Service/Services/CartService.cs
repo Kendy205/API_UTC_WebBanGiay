@@ -61,37 +61,69 @@ namespace WebBanHang.BLL.Services
             return _mapper.Map<CartDto>(entity);
         }
 
-        public async Task<bool> UpdateStatusAsync(long cartId, string newStatus)
+        public async Task UpdateAsync(long userId, UpdateToCartRequest request)
         {
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.CartId == cartId);
-            if (entity == null) return false;
+            //  Lấy cart 
+            var cart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId);
+            if (cart == null) throw new InvalidOperationException("Cart không tồn tại");
 
-            entity.Status = newStatus;
-            entity.UpdatedAt = DateTime.UtcNow;
-            _unitOfWork.Cart.Update(entity);
+            //  Lấy toàn bộ cart items hiện tại 
+            var currentItems = await _unitOfWork.CartItem.GetAllAsync(
+                x => x.CartId == cart.CartId
+            );
+
+            //  Tạo danh sách VariantId từ request
+            var requestVariantIds = request.variants.Select(v => v.VariantId).ToHashSet();
+
+            //  XÓA: item có trong cart nhưng không có trong request
+            var itemsToRemove = currentItems
+                .Where(ci => !requestVariantIds.Contains(ci.VariantId))
+                .ToList();
+
+            foreach (var removeItem in itemsToRemove)
+            {
+                _unitOfWork.CartItem.Remove(removeItem);
+            }
+
+            //  XỬ LÝ TỪNG ITEM TRONG REQUEST
+            foreach (var req in request.variants)
+            {
+                // Lấy variant + validate stock
+                var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(
+                    x => x.VariantId == req.VariantId,
+                    includeProperties: "Product"
+                );
+
+                if (variant == null)
+                    throw new InvalidOperationException("Biến thể không tồn tại");
+                // Kiểm tra item đã tồn tại trong cart chưa
+                var existingItem = currentItems.FirstOrDefault(x => x.VariantId == req.VariantId);
+
+                if (existingItem != null)
+                {
+                    //  UPDATE
+                    existingItem.Quantity = req.Quantity;
+                    _unitOfWork.CartItem.Update(existingItem);
+                }
+                else
+                {
+
+                    var newItem = new CartItem
+                    {
+                        CartId = cart.CartId,
+                        VariantId = req.VariantId,
+                        Quantity = req.Quantity,
+                        UnitPrice = (decimal)(variant.Product.SalePrice ?? variant.Product.BasePrice),
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _unitOfWork.CartItem.AddAsync(newItem);
+                }
+            }
+
+
             await _unitOfWork.SaveAsync();
-            return true;
-        }
 
-        public async Task<CartDto> GetCartByUserId(long userId)
-        {
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId, "CartItems");
-            return _mapper.Map<CartDto>(entity);
-        }
-
-        public Task AddAsync(CartDto dto)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task UpdateAsync(long id, CartDto dto)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task DeleteAsync(long id)
-        {
-            throw new NotImplementedException();
         }
     }
 }

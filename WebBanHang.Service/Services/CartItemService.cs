@@ -22,91 +22,6 @@ namespace WebBanHang.BLL.Services
             _mapper = mapper;
             _cartService = cartService;
         }
-         
-        public async Task<IEnumerable<CartItemDto>> GetCartItemsByCartIdAsync(long cartId)
-        {
-            var entities = await _unitOfWork.CartItem.GetAllAsync(
-                x => x.CartId == cartId,
-                includeProperties: "ProductVariant,ProductVariant.Size,ProductVariant.Color,ProductVariant.Product"
-            );
-            return _mapper.Map<IEnumerable<CartItemDto>>(entities);
-        }
-
-        public async Task AddProductToCartAsync(long cartId, long variantId, int quantity)
-        {
-            var v = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == variantId);
-            if (quantity > v.StockQuantity)
-                throw new InvalidOperationException("vượt quá số lượng tồn kho");
-            // Kiểm tra sản phẩm đã tồn tại trong giỏ chưa
-            var existingItem = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(
-                x => x.CartId == cartId && x.VariantId == variantId
-            );
-
-            if (existingItem != null)
-            {
-                existingItem.Quantity = quantity;
-                _unitOfWork.CartItem.Update(existingItem);
-            }
-            else
-            {
-                var variant =await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(
-                    x => x.VariantId == variantId,
-                    includeProperties :"Product"
-                );
-                if (variant == null)
-                    throw new InvalidOperationException("Không thấy biến thể");
-
-                var newItem = new CartItem
-                {
-                    CartId = cartId,
-                    VariantId = variantId,
-                    Quantity = quantity,
-                    UnitPrice = (decimal)(variant.Product.SalePrice ?? variant.Product.BasePrice),
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _unitOfWork.CartItem.AddAsync(newItem);
-            }
-
-            await _unitOfWork.SaveAsync();
-
-        }
-
-        //public async Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
-        //{
-        //    if (newQuantity <= 0)
-        //        throw new ArgumentException("Số lượng phải lớn hơn 0");
-        //    var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
-        //    if (entity == null)
-        //        throw new InvalidOperationException("Không tìm thấy CartItem");
-        //    var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == entity.VariantId);
-        //    if(newQuantity > variant.StockQuantity)
-        //        throw new InvalidOperationException("vượt quá số lượng tồn kho");
-
-        //    if (newQuantity == 0)
-        //        return await RemoveFromCartAsync(cartItemId);
-
-        //    long cartId = entity.CartId;
-        //    entity.Quantity = newQuantity;
-        //    _unitOfWork.CartItem.Update(entity);
-        //    await _unitOfWork.SaveAsync();
-
-        //    return await _cartService.GetByIdAsync(cartId)
-        //        ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi cập nhật");
-        //}
-
-        public async Task<CartDto> RemoveFromCartAsync(long cartItemId)
-        {
-            var entity = await _unitOfWork.CartItem.GetFirstOrDefaultAsync(x => x.CartItemId == cartItemId);
-            if (entity == null)
-                throw new InvalidOperationException("Không tìm thấy CartItem");
-
-            long cartId = entity.CartId;
-            _unitOfWork.CartItem.Remove(entity);
-            await _unitOfWork.SaveAsync();
-
-            return await _cartService.GetByIdAsync(cartId)
-                ?? throw new InvalidOperationException("Không tìm thấy giỏ hàng sau khi xóa sản phẩm");
-        }
 
         public async Task<bool> ClearCartAsync(long cartId)
         {
@@ -120,11 +35,6 @@ namespace WebBanHang.BLL.Services
 
             await _unitOfWork.SaveAsync();
             return true;
-        }
-
-        public Task<CartDto> UpdateQuantityAsync(long cartItemId, int newQuantity)
-        {
-            throw new NotImplementedException();
         }
     }
 }
