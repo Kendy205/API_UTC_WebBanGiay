@@ -46,7 +46,10 @@ namespace WebBanHang.Profiles
 
 
             CreateMap<Order, OrderDto>()
-                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName)); // Hoặc FullName nếu có
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName))
+                .ReverseMap();
+
+            CreateMap<OrderItem, OrderItemDto>().ReverseMap();
 
             CreateMap<OrderItem, OrderItemDto>();
            // CreateMap<Cart, CartDto>();
