@@ -12,5 +12,6 @@ namespace WebBanHang.BLL.IServices
         Task AddAsync(ProductDto dto);
         Task UpdateAsync(long id, ProductDto dto);
         Task DeleteAsync(long id);
+        Task<IEnumerable<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId,long? brandId,decimal? minPrice,decimal? maxPrice,int pageNumber,int pageSize);
     }
 }

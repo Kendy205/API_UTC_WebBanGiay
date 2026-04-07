@@ -73,5 +73,18 @@ namespace WebBanHang.Controllers.ProductController
             await _productService.DeleteAsync(id);
             return Ok(ApiResponse<string>.Succeeded(null, "Xóa sản phẩm thành công!"));
         }
+
+        [HttpGet("filter")]
+        public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            // Đảm bảo pageSize vsà pageNumber không bị âm hoặc bằng 0
+            int validPageNumber = pageNumber > 0 ? pageNumber : 1;
+            int validPageSize = pageSize > 0 ? pageSize : 10;
+
+            var products = await _productService.GetFilteredProductsAsync(
+                keyword, categoryId, brandId, minPrice, maxPrice, validPageNumber, validPageSize);
+
+            return Ok(ApiResponse<IEnumerable<ProductDto>>.Succeeded(products, "Lấy danh sách sản phẩm thành công!"));
+        }
     }
 }

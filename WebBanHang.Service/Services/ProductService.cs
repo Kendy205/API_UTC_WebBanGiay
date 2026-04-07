@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using WebBanHang.BLL.IServices;
 using WebBanHang.Model;
@@ -60,6 +61,28 @@ namespace WebBanHang.BLL.Services
                 _unitOfWork.Product.Remove(entity);
                 await _unitOfWork.SaveAsync();
             }
+        }
+        public async Task<IEnumerable<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId,long? brandId,decimal? minPrice,decimal? maxPrice,int pageNumber,int pageSize)
+        {
+            // 1. Định nghĩa bộ lọc
+            Expression<Func<Product, bool>> filter = x =>
+                x.IsActive &&
+                (string.IsNullOrEmpty(keyword) || x.ProductName.Contains(keyword)) &&
+                (!categoryId.HasValue || x.CategoryId == categoryId) &&
+                (!brandId.HasValue || x.BrandId == brandId) &&
+                (!minPrice.HasValue || x.BasePrice >= minPrice) &&
+                (!maxPrice.HasValue || x.BasePrice <= maxPrice);
+
+            // 2. Gọi Repository với các tham số phân trang
+            // Theo hàm GetAllAsync của bạn: filter, includeProperties, pageSize, pageNumber
+            var entities = await _unitOfWork.Product.GetAllAsync(
+                filter: filter,
+                includeProperties: "Category,Brand",
+                pageSize: pageSize,
+                pageNumber: pageNumber
+            );
+
+            return _mapper.Map<IEnumerable<ProductDto>>(entities);
         }
     }
 }
