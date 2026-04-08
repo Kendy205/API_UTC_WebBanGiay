@@ -46,27 +46,37 @@ namespace WebBanHang.Profiles
 
 
             CreateMap<Order, OrderDto>()
-                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName)); // Hoặc FullName nếu có
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName))
+                .ReverseMap();
 
+            CreateMap<OrderItem, OrderItemDto>().ReverseMap();
+            CreateMap<Address, AddressDto>();
+            CreateMap<Address, AddressDto>().ReverseMap();
             CreateMap<OrderItem, OrderItemDto>();
-            CreateMap<Cart, CartDto>();
-            CreateMap<CartItem, CartItemDto>();
+           // CreateMap<Cart, CartDto>();
+            //CreateMap<CartItem, CartItemDto>();
             CreateMap<Review, ReviewDto>();
             // Map cơ bản cho các bảng khác
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
 
             // ── CART & CARTITEM MAPPINGS ──────────────────────────
+
             CreateMap<CartItem, CartItemDto>()
+                // Lấy ProductId từ bảng ProductVariant
+                .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductVariant.ProductId))
+                // Lấy SKU
                 .ForMember(dest => dest.VariantSku, opt => opt.MapFrom(src => src.ProductVariant.Sku))
-                .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductVariant.Size.SizeLabel))
-                .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
+                // Xuyên qua ProductVariant lấy tên Sản phẩm
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductVariant.Product.ProductName))
-                .ReverseMap();
+                // Xuyên qua ProductVariant lấy tên Size (nhớ dùng đúng tên cột của bạn, ví dụ SizeLabel)
+                .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductVariant.Size.SizeLabel))
+                // Xuyên qua ProductVariant lấy tên Màu
+                .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
+                .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.ProductVariant.StockQuantity));
 
             CreateMap<Cart, CartDto>()
-                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems))
-                .ReverseMap();
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems)); // Map danh sách item
         }
     }
 }

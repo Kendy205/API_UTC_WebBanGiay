@@ -1,6 +1,8 @@
-﻿namespace WebBanHang.Service.DTOs.Model {
+namespace WebBanHang.Service.DTOs.Model {
     public class OrderItemDto {
         public long OrderItemId { get; set; }
+        public long OrderId { get; set; }
+        public long VariantId { get; set; }
         public string ProductNameSnapshot { get; set; } = string.Empty;
         public string? SizeLabelSnapshot { get; set; }
         public string? ColorNameSnapshot { get; set; }

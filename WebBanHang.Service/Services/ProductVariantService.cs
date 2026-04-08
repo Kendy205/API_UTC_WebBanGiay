@@ -28,12 +28,12 @@ namespace WebBanHang.BLL.Services
         public async Task<ProductVariantDto?> GetByIdAsync(long id)
         {
             // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.ProductVariantId == id) vào nhé.
-            var entity = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == id, "Size,Color");
+            var entity = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == id, "Size,Color,Product");
             return _mapper.Map<ProductVariantDto>(entity)  ; // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
         }
         public async Task<IEnumerable<ProductVariantDto>> GetByProductIdAsync(long productId)
         {
-            var entities = await _unitOfWork.ProductVariant.GetAllAsync(x => x.ProductId == productId, "Color,Size");
+            var entities = await _unitOfWork.ProductVariant.GetAllAsync(x => x.ProductId == productId, "Color,Size,Product");
             return _mapper.Map<IEnumerable<ProductVariantDto>>(entities);
         }
         public async Task AddAsync(ProductVariantDto dto)

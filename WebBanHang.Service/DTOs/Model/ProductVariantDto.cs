@@ -1,7 +1,7 @@
 ﻿namespace WebBanHang.Service.DTOs.Model {
     public class ProductVariantDto {
         public long VariantId { get; set; }
-        //public long ProductId { get; set; }
+        public long ProductId { get; set; }
         //public int SizeId { get; set; }
         //public int ColorId { get; set; }
         public string Sku { get; set; } = string.Empty;
