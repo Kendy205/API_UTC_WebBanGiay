@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebBanHang.DTOs.Auth;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Auth;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.AuthController

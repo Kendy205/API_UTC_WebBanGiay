@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebBanHang.BLL.IServices;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.IServices;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
 
 namespace WebBanHang.Controllers.ProductVariantController
@@ -13,6 +13,7 @@ namespace WebBanHang.Controllers.ProductVariantController
         public ProductVariantController(IProductVariantService variantService) => _variantService = variantService;
 
         [HttpGet]
+        
         public async Task<IActionResult> GetAll()
         {
             var result = await _variantService.GetAllAsync();

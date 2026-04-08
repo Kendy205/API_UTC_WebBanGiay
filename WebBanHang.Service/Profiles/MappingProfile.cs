@@ -9,7 +9,7 @@ using WebBanHang.Model;
 using WebBanHang.Service.DTOs.Model;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace WebBanHang.Profiles
+namespace WebBanHang.Service.Profiles
 {
     public class MappingProfile : Profile
     {

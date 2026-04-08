@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebBanHang.BLL.IServices;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.IServices;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
 
 namespace WebBanHang.Controllers.SizeController

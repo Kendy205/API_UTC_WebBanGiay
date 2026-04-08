@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WebBanHang.DTOs.Auth
+namespace WebBanHang.Service.DTOs.Auth
 {
     public class AuthResponseDto
     {

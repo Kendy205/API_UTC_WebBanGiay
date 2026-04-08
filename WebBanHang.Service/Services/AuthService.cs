@@ -9,7 +9,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using WebBanHang.DTOs.Auth;
+using WebBanHang.Service.DTOs.Auth;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.IServices;

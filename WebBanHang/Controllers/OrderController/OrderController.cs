@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Order;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Common;
 using System.Security.Claims;
 using System.Linq;
 

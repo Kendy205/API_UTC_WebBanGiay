@@ -8,7 +8,7 @@ using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Order;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Common;
 
 namespace WebBanHang.Service.Services
 {

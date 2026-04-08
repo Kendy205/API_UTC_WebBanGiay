@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebBanHang.BLL.IServices;
+using WebBanHang.Service.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
 
-namespace WebBanHang.BLL.Services
+namespace WebBanHang.Service.Services
 {
     public class PaymentService : IPaymentService
     {
