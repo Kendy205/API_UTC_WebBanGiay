@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebBanHang.BLL.IServices;
 using WebBanHang.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
@@ -38,15 +39,16 @@ namespace WebBanHang.Controllers.ProductController
 
         // POST: api/product
         [HttpPost]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Create([FromBody] ProductDto dto)
         {
             await _productService.AddAsync(dto);
-            // Thường sau khi tạo, ta trả về chính object đó hoặc chỉ cần message thành công
             return Ok(ApiResponse<ProductDto>.Succeeded(dto, "Thêm sản phẩm thành công!"));
         }
 
         // PUT: api/product/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Update(long id, [FromBody] ProductDto dto)
         {
             if (id != dto.ProductId)
@@ -64,6 +66,7 @@ namespace WebBanHang.Controllers.ProductController
 
         // DELETE: api/product/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _productService.GetByIdAsync(id);
@@ -77,7 +80,6 @@ namespace WebBanHang.Controllers.ProductController
         [HttpGet("filter")]
         public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            // Đảm bảo pageSize vsà pageNumber không bị âm hoặc bằng 0
             int validPageNumber = pageNumber > 0 ? pageNumber : 1;
             int validPageSize = pageSize > 0 ? pageSize : 10;
 
