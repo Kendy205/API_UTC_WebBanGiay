@@ -26,12 +26,14 @@ namespace WebBanHang.Controllers.OrderController
         private long GetCurrentUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+
             return claim != null ? long.Parse(claim.Value) : 0;
         }
 
         private bool IsAdmin() => User.IsInRole("1");
 
         [HttpGet]
+        
         public async Task<IActionResult> GetOrders()
         {
             var result = await _orderService.GetOrdersAsync(GetCurrentUserId(), IsAdmin());
@@ -51,9 +53,9 @@ namespace WebBanHang.Controllers.OrderController
         {
             long targetUserId = GetCurrentUserId();
 
-            if (IsAdmin() && dto.CustomerId.HasValue)
+            if (IsAdmin() && dto.UserId.HasValue)
             {
-                targetUserId = dto.CustomerId.Value;
+                targetUserId = dto.UserId.Value;
             }
 
             var result = await _orderService.PlaceOrderAsync(dto, targetUserId);
@@ -87,7 +89,7 @@ namespace WebBanHang.Controllers.OrderController
         /// <summary>
         /// Admin xóa đơn hàng vĩnh viễn (ID nằm trong Body).
         /// </summary>
-        [HttpPost("delete")]
+        [HttpDelete("delete")]
         [Authorize(Roles = "1")]
         public async Task<IActionResult> DeleteOrder([FromBody] DeleteOrderDto dto)
         {

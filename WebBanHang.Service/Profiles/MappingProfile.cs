@@ -50,7 +50,8 @@ namespace WebBanHang.Profiles
                 .ReverseMap();
 
             CreateMap<OrderItem, OrderItemDto>().ReverseMap();
-
+            CreateMap<Address, AddressDto>();
+            CreateMap<Address, AddressDto>().ReverseMap();
             CreateMap<OrderItem, OrderItemDto>();
            // CreateMap<Cart, CartDto>();
             //CreateMap<CartItem, CartItemDto>();

@@ -6,7 +6,7 @@ namespace WebBanHang.Service.DTOs.Order
     public class CheckoutDto
     {
         // Dùng khi Admin đặt hàng hộ cho User khác (tùy chọn)
-        public long? CustomerId { get; set; }
+        public long? UserId { get; set; }
 
         // Nếu dùng địa chỉ cũ, truyền Id này
         public long? ShippingAddressId { get; set; }

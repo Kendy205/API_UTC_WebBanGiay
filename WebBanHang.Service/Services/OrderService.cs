@@ -82,32 +82,32 @@ namespace WebBanHang.Service.Services
 
                     // 2. Đồng bộ dữ liệu FE vào bảng CartItem trong CSDL
                     var cart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(c => c.UserId == userId);
-                    if (cart == null)
-                    {
-                        cart = new Cart { UserId = userId, Status = "active", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-                        await _unitOfWork.Cart.AddAsync(cart);
-                        await _unitOfWork.SaveAsync();
-                    }
+                    //if (cart == null)
+                    //{
+                    //    cart = new Cart { UserId = userId, Status = "active", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+                    //    await _unitOfWork.Cart.AddAsync(cart);
+                    //    await _unitOfWork.SaveAsync();
+                    //}
 
-                    var existingItems = await _unitOfWork.CartItem.GetAllAsync(ci => ci.CartId == cart.CartId);
-                    foreach (var item in existingItems) _unitOfWork.CartItem.Remove(item);
+                    //var existingItems = await _unitOfWork.CartItem.GetAllAsync(ci => ci.CartId == cart.CartId);
+                    //foreach (var item in existingItems) _unitOfWork.CartItem.Remove(item);
 
-                    foreach (var itemDto in checkoutDto.Items)
-                    {
-                        var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == itemDto.VariantId, includeProperties: "Product");
-                        if (variant == null) throw new Exception($"Variant ID {itemDto.VariantId} not found.");
+                    //foreach (var itemDto in checkoutDto.Items)
+                    //{
+                    //    var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == itemDto.VariantId, includeProperties: "Product");
+                    //    if (variant == null) throw new Exception($"Variant ID {itemDto.VariantId} not found.");
 
-                        var cartItem = new CartItem
-                        {
-                            CartId = cart.CartId,
-                            VariantId = itemDto.VariantId,
-                            Quantity = itemDto.Quantity,
-                            UnitPrice = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        await _unitOfWork.CartItem.AddAsync(cartItem);
-                    }
-                    await _unitOfWork.SaveAsync(); 
+                    //    var cartItem = new CartItem
+                    //    {
+                    //        CartId = cart.CartId,
+                    //        VariantId = itemDto.VariantId,
+                    //        Quantity = itemDto.Quantity,
+                    //        UnitPrice = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice,
+                    //        CreatedAt = DateTime.UtcNow
+                    //    };
+                    //    await _unitOfWork.CartItem.AddAsync(cartItem);
+                    //}
+                    //await _unitOfWork.SaveAsync(); 
 
                     // 3. Tạo Order từ CartItems trong CSDL
                     var cartItems = await _unitOfWork.CartItem.GetAllAsync(ci => ci.CartId == cart.CartId, includeProperties: "ProductVariant.Product,ProductVariant.Size,ProductVariant.Color");
