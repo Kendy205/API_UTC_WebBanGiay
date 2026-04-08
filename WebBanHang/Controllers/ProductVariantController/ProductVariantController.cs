@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebBanHang.BLL.IServices;
 using WebBanHang.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
@@ -30,6 +31,7 @@ namespace WebBanHang.Controllers.ProductVariantController
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] ProductVariantDto dto)
         {
             await _variantService.AddAsync(dto);
@@ -37,6 +39,7 @@ namespace WebBanHang.Controllers.ProductVariantController
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(long id, [FromBody] ProductVariantDto dto)
         {
             var existing = await _variantService.GetByIdAsync(id);
@@ -48,6 +51,7 @@ namespace WebBanHang.Controllers.ProductVariantController
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _variantService.GetByIdAsync(id);
