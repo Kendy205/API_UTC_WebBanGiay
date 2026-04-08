@@ -23,46 +23,33 @@ public class CartController : ControllerBase
     }
      
     [HttpGet("mycart")]
-   
     public async Task<IActionResult> GetMyCart()
     {
         var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         if (userId == 0) 
             return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
 
-        var cart = await _cartService.GetActiveCartByUserIdAsync(userId);
-        if (cart == null) 
-            return NotFound(ApiResponse<CartDto>.Failed("Giỏ hàng không tồn tại", 404));
-
+        var cart  = await _cartService.GetCartByUserId(userId);
         return Ok(ApiResponse<CartDto>.Succeeded(cart, "Lấy giỏ hàng thành công"));
     }
 
     [HttpPost("addcart")]
   
-    public async Task<IActionResult> AddItemToCart(AddCartItemRequest item)
+    public async Task<IActionResult> AddItemToCart(AddCartItemDto item)
     {
         var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         if (userId == 0) return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
 
 
-        var cart = await _cartService.GetOrCreateCartForUserAsync(userId);
+        var cart = await _cartService.GetCartByUserId(userId);
         
         var variant = await _variantService.GetByIdAsync(item.VariantId);
         if (variant == null)
             return NotFound(ApiResponse<CartDto>.Failed("Biến thể không tồn tại", 404));
-        
         try
         {
             await _cartItemService.AddProductToCartAsync(cart.CartId, item.VariantId, item.Quantity);
-            //foreach (AddCartItemRequest item in request.variants)
-            //{
-            //    var variant = await _variantService.GetByIdAsync(item.VariantId);
-            //    if (variant == null) 
-            //       return NotFound(ApiResponse<CartDto>.Failed("Biến thể không tồn tại", 404));
-            //    await _cartItemService.AddProductToCartAsync(cart.CartId, item.VariantId, item.Quantity);
-            //}
-
-            cart = await _cartService.GetOrCreateCartForUserAsync(userId);
+            cart = await _cartService.GetCartByUserId(userId);
             return Ok(ApiResponse<CartDto>.Succeeded(cart, "Cập nhật cart thành công"));
         }
         catch (InvalidOperationException e)
@@ -73,7 +60,7 @@ public class CartController : ControllerBase
 
     [HttpPut("items/{cartItemId}")]
     
-    public async Task<IActionResult> UpdateItemQuantity(long cartItemId, [FromBody] UpdateQuantityRequest request)
+    public async Task<IActionResult> UpdateItemQuantity(long cartItemId, [FromBody] UpdateQuantityDto request)
     {
         try
         {
@@ -113,7 +100,7 @@ public class CartController : ControllerBase
         var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         if (userId == 0) 
             return Unauthorized(ApiResponse<CartDto>.Failed("Hết hạn,Vui lòng đăng nhập", 401));
-        var cart = await _cartService.GetActiveCartByUserIdAsync(userId);
+        var cart = await _cartService.GetCartByUserId(userId);
 
         await _cartItemService.ClearCartAsync(cart.CartId);
         // Sau khi xóa, client có thể gọi lại GET /me để lấy cart rỗng, hoặc trả về cart rỗng luôn
@@ -121,16 +108,12 @@ public class CartController : ControllerBase
         return Ok(ApiResponse<CartDto>.Succeeded(emptyCart, "Đã xóa toàn bộ sản phẩm"));
     }
 
-    public class AddCartItemRequest { 
+    public class AddCartItemDto { 
         public long VariantId { get; set; } 
         public int Quantity { get; set; } 
     }
 
-    public class AddToCartRequest { 
-        public List<AddCartItemRequest>? variants { get; set; }
-    }
-
-    public class UpdateQuantityRequest { 
+    public class UpdateQuantityDto { 
         public int Quantity { get; set; } 
     }
     

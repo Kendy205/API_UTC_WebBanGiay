@@ -13,13 +13,6 @@ namespace WebBanHang.Service.IServices
 
         Task<CartDto> GetCartByUserId(long userId); 
 
-
-        /// <summary>Lấy hoặc tạo giỏ hàng active của user</summary>
-        Task<CartDto> GetOrCreateCartForUserAsync(long userId);
-
-        /// <summary>Lấy giỏ hàng active của user (nếu có)</summary>
-        Task<CartDto?> GetActiveCartByUserIdAsync(long userId);
-
         /// <summary>Cập nhật trạng thái giỏ hàng</summary>
         Task<bool> UpdateStatusAsync(long cartId, string newStatus);
 
