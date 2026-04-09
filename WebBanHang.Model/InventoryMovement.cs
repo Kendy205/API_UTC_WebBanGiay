@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using WebBanHang.Model;
 
+using WebBanHang.Model.Enums;
+
 namespace WebBanHang.Model
 {
     [Table("inventory_movements")]
@@ -32,7 +34,7 @@ namespace WebBanHang.Model
         [Required]
         [MaxLength(20)]
         [Column("movement_type")]
-        public string MovementType { get; set; } = string.Empty;
+        public string MovementType { get; set; } = InventoryMovementType.IN.ToString();
 
         /// <summary>
         /// Số lượng thay đổi (LUÔN dương)

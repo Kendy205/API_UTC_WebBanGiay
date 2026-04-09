@@ -9,6 +9,7 @@ using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Order;
 using WebBanHang.DTOs.Common;
+using WebBanHang.Model.Enums;
 
 namespace WebBanHang.Service.Services
 {
@@ -16,11 +17,13 @@ namespace WebBanHang.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public OrderService(IUnitOfWork unitOfWork, IMapper mapper)
+        public OrderService(IUnitOfWork unitOfWork, IMapper mapper, IInventoryMovementService inventoryMovementService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _inventoryMovementService = inventoryMovementService;
         }
 
         public async Task<ApiResponse<IEnumerable<OrderDto>>> GetOrdersAsync(long userId, bool isAdmin)
@@ -80,83 +83,63 @@ namespace WebBanHang.Service.Services
                         throw new Exception("Please provide a shipping address.");
                     }
 
-                    // 2. Đồng bộ dữ liệu FE vào bảng CartItem trong CSDL
-                    var cart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(c => c.UserId == userId);
-                    //if (cart == null)
-                    //{
-                    //    cart = new Cart { UserId = userId, Status = "active", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-                    //    await _unitOfWork.Cart.AddAsync(cart);
-                    //    await _unitOfWork.SaveAsync();
-                    //}
-
-                    //var existingItems = await _unitOfWork.CartItem.GetAllAsync(ci => ci.CartId == cart.CartId);
-                    //foreach (var item in existingItems) _unitOfWork.CartItem.Remove(item);
-
-                    //foreach (var itemDto in checkoutDto.Items)
-                    //{
-                    //    var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == itemDto.VariantId, includeProperties: "Product");
-                    //    if (variant == null) throw new Exception($"Variant ID {itemDto.VariantId} not found.");
-
-                    //    var cartItem = new CartItem
-                    //    {
-                    //        CartId = cart.CartId,
-                    //        VariantId = itemDto.VariantId,
-                    //        Quantity = itemDto.Quantity,
-                    //        UnitPrice = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice,
-                    //        CreatedAt = DateTime.UtcNow
-                    //    };
-                    //    await _unitOfWork.CartItem.AddAsync(cartItem);
-                    //}
-                    //await _unitOfWork.SaveAsync(); 
-
-                    // 3. Tạo Order từ CartItems trong CSDL
-                    var cartItems = await _unitOfWork.CartItem.GetAllAsync(ci => ci.CartId == cart.CartId, includeProperties: "ProductVariant.Product,ProductVariant.Size,ProductVariant.Color");
-                    
+                    // 2. Tạo Order mới
                     var order = new Order
                     {
                         UserId = userId,
                         ShippingAddressId = finalAddressId,
                         OrderCode = "ORD-" + DateTime.Now.ToString("yyMMdd") + new Random().Next(1000, 9999),
-                        OrderStatus = "pending",
-                        PaymentStatus = "unpaid",
+                        OrderStatus = WebBanHang.Model.Enums.OrderStatus.Pending.ToString(),
+                        PaymentStatus = WebBanHang.Model.Enums.PaymentStatus.Unpaid.ToString(),
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
                         ShippingFee = 30000
                     };
 
                     decimal subtotal = 0;
-                    var movements = new List<InventoryMovement>();
+                    var movementDtos = new List<InventoryMovementDto>();
 
-                    foreach (var ci in cartItems)
+                    // 3. Xử lý từng item từ Giỏ hàng Local (checkoutDto.Items)
+                    foreach (var itemDto in checkoutDto.Items)
                     {
-                        var variant = ci.ProductVariant;
-                        if (variant.StockQuantity < ci.Quantity) throw new Exception($"Product {variant.Product.ProductName} is out of stock.");
+                        var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(
+                            v => v.VariantId == itemDto.VariantId, 
+                            includeProperties: "Product,Size,Color"
+                        );
+
+                        if (variant == null) throw new Exception($"Sản phẩm với ID {itemDto.VariantId} không tồn tại.");
+                        if (variant.StockQuantity < itemDto.Quantity) throw new Exception($"Sản phẩm {variant.Product.ProductName} đã hết hàng hoặc không đủ số lượng.");
+
+                        // Tính giá (Ưu tiên PriceOverride của Variant, sau đó đến SalePrice/BasePrice của Product)
+                        decimal unitPrice = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
 
                         var orderItem = new OrderItem
                         {
-                            VariantId = ci.VariantId,
+                            VariantId = variant.VariantId,
                             ProductNameSnapshot = variant.Product.ProductName,
                             SizeLabelSnapshot = variant.Size.SizeLabel,
                             ColorNameSnapshot = variant.Color.ColorName,
                             SkuSnapshot = variant.Sku,
-                            UnitPrice = ci.UnitPrice,
-                            Quantity = ci.Quantity,
-                            LineTotal = ci.UnitPrice * ci.Quantity
+                            UnitPrice = unitPrice,
+                            Quantity = itemDto.Quantity,
+                            LineTotal = unitPrice * itemDto.Quantity
                         };
 
                         order.OrderItems.Add(orderItem);
                         subtotal += orderItem.LineTotal;
 
-                        variant.StockQuantity -= ci.Quantity;
+                        // Cập nhật tồn kho (Trừ kho)
+                        variant.StockQuantity -= itemDto.Quantity;
                         _unitOfWork.ProductVariant.Update(variant);
 
-                        movements.Add(new InventoryMovement
+                        // Tạo nhật ký kho (InventoryMovement) loại OUT
+                        movementDtos.Add(new InventoryMovementDto
                         {
-                            VariantId = ci.VariantId,
-                            MovementType = "OUT",
-                            Quantity = ci.Quantity,
+                            VariantId = variant.VariantId,
+                            MovementType = WebBanHang.Model.Enums.InventoryMovementType.OUT.ToString(),
+                            Quantity = itemDto.Quantity,
                             ReferenceType = "order",
-                            Note = $"Order {order.OrderCode} placed",
+                            Note = $"Xuất kho cho đơn hàng {order.OrderCode} (Giỏ hàng Local)",
                             CreatedBy = userId,
                             CreatedAt = DateTime.UtcNow
                         });
@@ -165,22 +148,29 @@ namespace WebBanHang.Service.Services
                     order.SubtotalAmount = subtotal;
                     order.TotalAmount = subtotal + order.ShippingFee;
 
+                    // Lưu Order vào CSDL
                     await _unitOfWork.Order.AddAsync(order);
                     await _unitOfWork.SaveAsync(); 
 
-                    foreach (var m in movements)
+                    // Lưu nhật ký kho qua InventoryMovementService
+                    foreach (var mDto in movementDtos)
                     {
-                        m.ReferenceId = order.OrderId;
-                        await _unitOfWork.InventoryMovement.AddAsync(m);
+                        mDto.ReferenceId = order.OrderId;
+                        await _inventoryMovementService.AddAsync(mDto);
                     }
 
-                    // 4. Xóa sạch CartItem sau khi tạo Order thành công
-                    foreach (var ci in cartItems) _unitOfWork.CartItem.Remove(ci);
+                    // 4. (Tùy chọn) Xóa giỏ hàng trong CSDL nếu tồn tại (để đồng bộ)
+                    var cart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(c => c.UserId == userId);
+                    if (cart != null)
+                    {
+                        var dbCartItems = await _unitOfWork.CartItem.GetAllAsync(ci => ci.CartId == cart.CartId);
+                        foreach (var ci in dbCartItems) _unitOfWork.CartItem.Remove(ci);
+                        await _unitOfWork.SaveAsync();
+                    }
 
-                    await _unitOfWork.SaveAsync();
                     await transaction.CommitAsync();
 
-                    return ApiResponse<OrderDto>.Succeeded(_mapper.Map<OrderDto>(order), "Order placed successfully", 201);
+                    return ApiResponse<OrderDto>.Succeeded(_mapper.Map<OrderDto>(order), "Đặt hàng thành công!", 201);
                 }
                 catch (Exception ex)
                 {
@@ -234,7 +224,7 @@ namespace WebBanHang.Service.Services
                 return ApiResponse<bool>.Failed("Permission denied", 403);
 
             // Chỉ cho phép hủy khi chưa giao
-            if (order.OrderStatus == "shipped" || order.OrderStatus == "delivered")
+            if (order.OrderStatus == WebBanHang.Model.Enums.OrderStatus.Shipped.ToString() || order.OrderStatus == WebBanHang.Model.Enums.OrderStatus.Delivered.ToString())
                 return ApiResponse<bool>.Failed("Cannot cancel order that has been shipped or delivered.", 400);
 
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
@@ -250,10 +240,10 @@ namespace WebBanHang.Service.Services
                             variant.StockQuantity += item.Quantity;
                             _unitOfWork.ProductVariant.Update(variant);
 
-                            await _unitOfWork.InventoryMovement.AddAsync(new InventoryMovement
+                            await _inventoryMovementService.AddAsync(new InventoryMovementDto
                             {
                                 VariantId = item.VariantId,
-                                MovementType = "IN",
+                                MovementType = WebBanHang.Model.Enums.InventoryMovementType.IN.ToString(),
                                 Quantity = item.Quantity,
                                 ReferenceType = "order_cancel",
                                 Note = $"Restock from cancelled order {order.OrderCode}",

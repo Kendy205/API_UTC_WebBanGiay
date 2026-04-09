@@ -30,7 +30,7 @@ namespace WebBanHang.Controllers.OrderController
             return claim != null ? long.Parse(claim.Value) : 0;
         }
 
-        private bool IsAdmin() => User.IsInRole("1");
+        private bool IsAdmin() => User.IsInRole("ADMIN");
 
         [HttpGet]
         
@@ -78,7 +78,7 @@ namespace WebBanHang.Controllers.OrderController
         /// Admin cập nhật thông tin đơn hàng (ID nằm trong Body).
         /// </summary>
         [HttpPut("admin-update")]
-        [Authorize(Roles = "1")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> AdminUpdateOrder([FromBody] OrderUpdateDto dto)
         {
             var result = await _orderService.AdminUpdateOrderAsync(dto.OrderId, dto);
@@ -90,7 +90,7 @@ namespace WebBanHang.Controllers.OrderController
         /// Admin xóa đơn hàng vĩnh viễn (ID nằm trong Body).
         /// </summary>
         [HttpDelete("delete")]
-        [Authorize(Roles = "1")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> DeleteOrder([FromBody] DeleteOrderDto dto)
         {
             var result = await _orderService.DeleteAsync(dto.OrderId);

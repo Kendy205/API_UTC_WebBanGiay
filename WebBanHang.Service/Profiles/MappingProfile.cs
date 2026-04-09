@@ -59,6 +59,7 @@ namespace WebBanHang.Profiles
             // Map cơ bản cho các bảng khác
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
+            CreateMap<InventoryMovement, InventoryMovementDto>().ReverseMap();
 
             // ── CART & CARTITEM MAPPINGS ──────────────────────────
 
