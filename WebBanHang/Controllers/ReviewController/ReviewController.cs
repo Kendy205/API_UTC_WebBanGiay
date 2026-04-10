@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Model;
-using WebBanHang.BLL.IServices;
+using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.ReviewController
 {
