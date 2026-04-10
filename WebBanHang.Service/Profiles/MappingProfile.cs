@@ -52,6 +52,14 @@ namespace WebBanHang.Service.Profiles
             CreateMap<OrderItem, OrderItemDto>().ReverseMap();
             CreateMap<Address, AddressDto>();
             CreateMap<Address, AddressDto>().ReverseMap();
+            // REVIEW mappings: add reverse map so ReviewDto -> Review is known
+            CreateMap<Review, ReviewDto>();
+            CreateMap<ReviewDto, Review>()
+                .ForMember(dest => dest.ReviewId, opt => opt.Ignore()) // DB generates key
+                .ForMember(dest => dest.User, opt => opt.Ignore())     // navigation properties handled by EF
+                .ForMember(dest => dest.OrderItem, opt => opt.Ignore())
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
             CreateMap<OrderItem, OrderItemDto>();
            // CreateMap<Cart, CartDto>();
             //CreateMap<CartItem, CartItemDto>();
