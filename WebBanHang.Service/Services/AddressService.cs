@@ -61,5 +61,11 @@ namespace WebBanHang.Service.Services
                 await _unitOfWork.SaveAsync();
             }
         }
+
+        public async Task<IEnumerable<AddressDto>> GetByUserIdAsync(long userId)
+        {
+            var entity = await _unitOfWork.Address.GetAllAsync(x => x.UserId == userId);
+            return _mapper.Map<IEnumerable<AddressDto>>(entity);
+        }
     }
 }

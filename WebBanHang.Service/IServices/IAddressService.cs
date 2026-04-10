@@ -11,5 +11,7 @@ namespace WebBanHang.Service.IServices
         Task AddAsync(AddressDto dto);
         Task UpdateAsync(long id, AddressDto dto);
         Task DeleteAsync(long id);
+
+        Task<IEnumerable<AddressDto>> GetByUserIdAsync(long userId);
     }
 }

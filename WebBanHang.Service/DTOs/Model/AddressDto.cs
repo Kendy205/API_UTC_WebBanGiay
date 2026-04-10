@@ -1,5 +1,6 @@
 namespace WebBanHang.Service.DTOs.Model {
     public class AddressDto {
+        public long UserId { get; set; }
         public long AddressId { get; set; }
         public string RecipientName { get; set; } = string.Empty;
         public string? Phone { get; set; }
