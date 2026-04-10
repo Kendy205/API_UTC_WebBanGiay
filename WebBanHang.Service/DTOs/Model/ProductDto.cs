@@ -9,6 +9,7 @@
         public decimal BasePrice { get; set; }
         public decimal? SalePrice { get; set; }
         public string? Image { get; set; }
+        public string? ImagePublicId { get; set; }
         // Flatten (Làm phẳng) dữ liệu từ các bảng liên kết
         public string? CategoryName { get; set; }
         public string? BrandName { get; set; }

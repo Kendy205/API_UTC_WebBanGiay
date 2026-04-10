@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
@@ -30,6 +31,7 @@ namespace WebBanHang.Controllers.SizeController
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] SizeDto dto)
         {
             await _sizeService.AddAsync(dto);
@@ -37,6 +39,7 @@ namespace WebBanHang.Controllers.SizeController
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] SizeDto dto)
         {
             var existing = await _sizeService.GetByIdAsync(id);
@@ -48,6 +51,7 @@ namespace WebBanHang.Controllers.SizeController
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var existing = await _sizeService.GetByIdAsync(id);

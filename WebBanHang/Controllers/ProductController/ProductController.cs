@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using WebBanHang.Service.IServices;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebBanHang.Model;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.IServices;
+using WebBanHang.Service.Services;
 
 namespace WebBanHang.Controllers.ProductController
 {
@@ -12,10 +15,12 @@ namespace WebBanHang.Controllers.ProductController
         private readonly IProductService _productService;
         private readonly IProductVariantService _variantService;
 
+
         public ProductController(IProductService productService, IProductVariantService variantService)
         {
             _productService = productService;
             _variantService = variantService;
+
         }
 
         // GET: api/product
@@ -39,16 +44,35 @@ namespace WebBanHang.Controllers.ProductController
         }
 
         // POST: api/product
+        //[HttpPost]
+        //[Authorize(Roles = "ADMIN")]
+        //public async Task<IActionResult> Create([FromBody] ProductDto dto)
+        //{
+        //    await _productService.AddAsync(dto);
+        //    return Ok(ApiResponse<ProductDto>.Succeeded(dto, "Thêm sản phẩm thành công!"));
+        //}
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] ProductDto dto)
+        [Authorize(Roles = "ADMIN")]
+        public async Task<IActionResult> CreateProduct([FromForm] ProductDto dto, IFormFile file)
         {
-            await _productService.AddAsync(dto);
-            // Thường sau khi tạo, ta trả về chính object đó hoặc chỉ cần message thành công
-            return Ok(ApiResponse<ProductDto>.Succeeded(dto, "Thêm sản phẩm thành công!"));
+            try
+            {
+                var result = await _productService.AddAsync(dto, file);
+
+                //if (result.Error != null) return BadRequest(result.Error.Message);
+
+                return Ok(ApiResponse<ProductDto>.Succeeded(result, "Thêm sản phẩm thành công!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed($"Lỗi: {ex.Message}"));
+            }
+
         }
 
         // PUT: api/product/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Update(long id, [FromBody] ProductDto dto)
         {
             if (id != dto.ProductId)
@@ -66,6 +90,7 @@ namespace WebBanHang.Controllers.ProductController
 
         // DELETE: api/product/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _productService.GetByIdAsync(id);
@@ -74,6 +99,18 @@ namespace WebBanHang.Controllers.ProductController
 
             await _productService.DeleteAsync(id);
             return Ok(ApiResponse<string>.Succeeded(null, "Xóa sản phẩm thành công!"));
+        }
+
+        [HttpGet("filter")]
+        public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            int validPageNumber = pageNumber > 0 ? pageNumber : 1;
+            int validPageSize = pageSize > 0 ? pageSize : 10;
+
+            var products = await _productService.GetFilteredProductsAsync(
+                keyword, categoryId, brandId, minPrice, maxPrice, validPageNumber, validPageSize);
+
+            return Ok(ApiResponse<IEnumerable<ProductDto>>.Succeeded(products, "Lấy danh sách sản phẩm thành công!"));
         }
     }
 }
