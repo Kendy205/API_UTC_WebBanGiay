@@ -34,8 +34,22 @@ namespace WebBanHang.Service.Services
 
         public async Task AddAsync(InventoryMovementDto dto)
         {
+            ValidateForWrite(dto);
             var entity = _mapper.Map<InventoryMovement>(dto);
             await _unitOfWork.InventoryMovement.AddAsync(entity);
+            await _unitOfWork.SaveAsync();
+        }
+
+        public async Task AddRangeAsync(IEnumerable<InventoryMovementDto> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                ValidateForWrite(dto);
+                var entity = _mapper.Map<InventoryMovement>(dto);
+                await _unitOfWork.InventoryMovement.AddAsync(entity);
+            }
+
+            // Save một lần để phục vụ các flow Order cần ghi movement theo lô.
             await _unitOfWork.SaveAsync();
         }
 
@@ -59,6 +73,19 @@ namespace WebBanHang.Service.Services
             {
                 _unitOfWork.InventoryMovement.Remove(entity);
                 await _unitOfWork.SaveAsync();
+            }
+        }
+
+        private static void ValidateForWrite(InventoryMovementDto dto)
+        {
+            if (dto.Quantity <= 0)
+            {
+                throw new ArgumentException("Inventory movement quantity must be greater than 0.");
+            }
+
+            if (dto.CreatedBy <= 0)
+            {
+                throw new ArgumentException("Inventory movement createdBy is required.");
             }
         }
     }

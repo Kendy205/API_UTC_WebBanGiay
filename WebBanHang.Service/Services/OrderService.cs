@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,8 +58,29 @@ namespace WebBanHang.Service.Services
 
         public async Task<ApiResponse<OrderDto>> PlaceOrderAsync(CheckoutDto checkoutDto, long userId)
         {
+            if (userId <= 0)
+            {
+                return ApiResponse<OrderDto>.Failed("Unauthorized", 401);
+            }
+
+            if (checkoutDto.Items == null || !checkoutDto.Items.Any())
+            {
+                return ApiResponse<OrderDto>.Failed("Items must not be empty.", 400);
+            }
+
+            if (checkoutDto.Items.Any(x => x.Quantity <= 0))
+            {
+                return ApiResponse<OrderDto>.Failed("Quantity must be greater than 0.", 400);
+            }
+
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
+                async Task<ApiResponse<OrderDto>> FailAsync(string message, int statusCode = 400)
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<OrderDto>.Failed(message, statusCode);
+                }
+
                 try
                 {
                     // 1. Xử lý địa chỉ
@@ -75,20 +97,26 @@ namespace WebBanHang.Service.Services
                     else if (checkoutDto.ShippingAddressId.HasValue)
                     {
                         var existingAddr = await _unitOfWork.Address.GetFirstOrDefaultAsync(a => a.AddressId == checkoutDto.ShippingAddressId.Value && a.UserId == userId);
-                        if (existingAddr == null) throw new Exception("Invalid shipping address.");
+                        if (existingAddr == null) return await FailAsync("Invalid shipping address.", 400);
                         finalAddressId = existingAddr.AddressId;
                     }
                     else
                     {
-                        throw new Exception("Please provide a shipping address.");
+                        return await FailAsync("Please provide a shipping address.", 400);
                     }
 
                     // 2. Tạo Order mới
+                    var orderCode = await GenerateUniqueOrderCodeAsync();
+                    if (string.IsNullOrEmpty(orderCode))
+                    {
+                        return await FailAsync("Could not generate a unique order code.", 409);
+                    }
+
                     var order = new Order
                     {
                         UserId = userId,
                         ShippingAddressId = finalAddressId,
-                        OrderCode = "ORD-" + DateTime.Now.ToString("yyMMdd") + new Random().Next(1000, 9999),
+                        OrderCode = orderCode,
                         OrderStatus = WebBanHang.Model.Enums.OrderStatus.Pending.ToString(),
                         PaymentStatus = WebBanHang.Model.Enums.PaymentStatus.Unpaid.ToString(),
                         CreatedAt = DateTime.UtcNow,
@@ -107,8 +135,10 @@ namespace WebBanHang.Service.Services
                             includeProperties: "Product,Size,Color"
                         );
 
-                        if (variant == null) throw new Exception($"Sản phẩm với ID {itemDto.VariantId} không tồn tại.");
-                        if (variant.StockQuantity < itemDto.Quantity) throw new Exception($"Sản phẩm {variant.Product.ProductName} đã hết hàng hoặc không đủ số lượng.");
+                        if (variant == null) return await FailAsync($"Product variant {itemDto.VariantId} does not exist.", 404);
+
+                        var stockDecreased = await _unitOfWork.ProductVariant.TryDecreaseStockAsync(variant.VariantId, itemDto.Quantity);
+                        if (!stockDecreased) return await FailAsync($"Sản phẩm {variant.Product.ProductName} đã hết hàng hoặc không đủ số lượng.", 409);
 
                         // Tính giá (Ưu tiên PriceOverride của Variant, sau đó đến SalePrice/BasePrice của Product)
                         decimal unitPrice = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
@@ -128,10 +158,6 @@ namespace WebBanHang.Service.Services
                         order.OrderItems.Add(orderItem);
                         subtotal += orderItem.LineTotal;
 
-                        // Cập nhật tồn kho (Trừ kho)
-                        variant.StockQuantity -= itemDto.Quantity;
-                        _unitOfWork.ProductVariant.Update(variant);
-
                         // Tạo nhật ký kho (InventoryMovement) loại OUT
                         movementDtos.Add(new InventoryMovementDto
                         {
@@ -146,18 +172,22 @@ namespace WebBanHang.Service.Services
                     }
 
                     order.SubtotalAmount = subtotal;
-                    order.TotalAmount = subtotal + order.ShippingFee;
+                    order.TotalAmount = subtotal + order.ShippingFee - order.DiscountAmount;
+                    if (order.TotalAmount < 0)
+                    {
+                        return await FailAsync("Total amount is invalid.", 400);
+                    }
 
                     // Lưu Order vào CSDL
                     await _unitOfWork.Order.AddAsync(order);
                     await _unitOfWork.SaveAsync(); 
 
-                    // Lưu nhật ký kho qua InventoryMovementService
+                    // Gắn OrderId cho movement rồi ghi theo lô để không SaveChanges nhiều lần.
                     foreach (var mDto in movementDtos)
                     {
                         mDto.ReferenceId = order.OrderId;
-                        await _inventoryMovementService.AddAsync(mDto);
                     }
+                    await _inventoryMovementService.AddRangeAsync(movementDtos);
 
                     // 4. (Tùy chọn) Xóa giỏ hàng trong CSDL nếu tồn tại (để đồng bộ)
                     var cart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(c => c.UserId == userId);
@@ -172,10 +202,15 @@ namespace WebBanHang.Service.Services
 
                     return ApiResponse<OrderDto>.Succeeded(_mapper.Map<OrderDto>(order), "Đặt hàng thành công!", 201);
                 }
-                catch (Exception ex)
+                catch (DbUpdateException)
                 {
                     await transaction.RollbackAsync();
-                    return ApiResponse<OrderDto>.Failed(ex.Message);
+                    return ApiResponse<OrderDto>.Failed("Order conflict detected. Please retry.", 409);
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<OrderDto>.Failed("Internal server error while placing order.", 500);
                 }
             }
         }
@@ -186,8 +221,21 @@ namespace WebBanHang.Service.Services
             if (order == null) return ApiResponse<OrderDto>.Failed("Order not found", 404);
 
             if (!string.IsNullOrEmpty(updateDto.OrderCode)) order.OrderCode = updateDto.OrderCode;
-            if (!string.IsNullOrEmpty(updateDto.OrderStatus)) order.OrderStatus = updateDto.OrderStatus;
-            if (!string.IsNullOrEmpty(updateDto.PaymentStatus)) order.PaymentStatus = updateDto.PaymentStatus;
+            if (!string.IsNullOrEmpty(updateDto.OrderStatus))
+            {
+                if (!Enum.TryParse<WebBanHang.Model.Enums.OrderStatus>(updateDto.OrderStatus, true, out var parsedOrderStatus))
+                    return ApiResponse<OrderDto>.Failed("Invalid order status.", 400);
+
+                order.OrderStatus = parsedOrderStatus.ToString();
+            }
+
+            if (!string.IsNullOrEmpty(updateDto.PaymentStatus))
+            {
+                if (!Enum.TryParse<WebBanHang.Model.Enums.PaymentStatus>(updateDto.PaymentStatus, true, out var parsedPaymentStatus))
+                    return ApiResponse<OrderDto>.Failed("Invalid payment status.", 400);
+
+                order.PaymentStatus = parsedPaymentStatus.ToString();
+            }
             
             if (updateDto.UpdatedAddress != null)
             {
@@ -200,17 +248,44 @@ namespace WebBanHang.Service.Services
             }
             else if (updateDto.ShippingAddressId.HasValue)
             {
+                var existingAddr = await _unitOfWork.Address.GetFirstOrDefaultAsync(a => a.AddressId == updateDto.ShippingAddressId.Value);
+                if (existingAddr == null)
+                    return ApiResponse<OrderDto>.Failed("Shipping address not found.", 404);
+
                 order.ShippingAddressId = updateDto.ShippingAddressId.Value;
             }
 
-            if (updateDto.ShippingFee.HasValue) order.ShippingFee = updateDto.ShippingFee.Value;
-            if (updateDto.SubtotalAmount.HasValue) order.SubtotalAmount = updateDto.SubtotalAmount.Value;
+            if (updateDto.ShippingFee.HasValue)
+            {
+                if (updateDto.ShippingFee.Value < 0) return ApiResponse<OrderDto>.Failed("Shipping fee cannot be negative.", 400);
+                order.ShippingFee = updateDto.ShippingFee.Value;
+            }
+
+            if (updateDto.SubtotalAmount.HasValue)
+            {
+                if (updateDto.SubtotalAmount.Value < 0) return ApiResponse<OrderDto>.Failed("Subtotal cannot be negative.", 400);
+                order.SubtotalAmount = updateDto.SubtotalAmount.Value;
+            }
+
+            if (updateDto.DiscountAmount.HasValue)
+            {
+                if (updateDto.DiscountAmount.Value < 0) return ApiResponse<OrderDto>.Failed("Discount cannot be negative.", 400);
+                order.DiscountAmount = updateDto.DiscountAmount.Value;
+            }
 
             order.UpdatedAt = DateTime.UtcNow;
-            order.TotalAmount = order.SubtotalAmount + order.ShippingFee;
+            order.TotalAmount = order.SubtotalAmount + order.ShippingFee - order.DiscountAmount;
+            if (order.TotalAmount < 0) return ApiResponse<OrderDto>.Failed("Total amount cannot be negative.", 400);
 
             _unitOfWork.Order.Update(order);
-            await _unitOfWork.SaveAsync();
+            try
+            {
+                await _unitOfWork.SaveAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return ApiResponse<OrderDto>.Failed("Order update conflict detected.", 409);
+            }
 
             return ApiResponse<OrderDto>.Succeeded(_mapper.Map<OrderDto>(order), "Order updated successfully.");
         }
@@ -229,31 +304,41 @@ namespace WebBanHang.Service.Services
 
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
+                async Task<ApiResponse<bool>> FailAsync(string message, int statusCode = 400)
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<bool>.Failed(message, statusCode);
+                }
+
                 try
                 {
-                    // 1. Hoàn trả số lượng vào kho
+                    // 1. Hoàn trả số lượng vào kho + chuẩn bị movement theo lô
+                    var cancelMovementDtos = new List<InventoryMovementDto>();
                     foreach (var item in order.OrderItems)
                     {
-                        var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == item.VariantId);
-                        if (variant != null)
-                        {
-                            variant.StockQuantity += item.Quantity;
-                            _unitOfWork.ProductVariant.Update(variant);
+                        if (item.Quantity <= 0) return await FailAsync("Invalid order item quantity detected.", 409);
 
-                            await _inventoryMovementService.AddAsync(new InventoryMovementDto
-                            {
-                                VariantId = item.VariantId,
-                                MovementType = WebBanHang.Model.Enums.InventoryMovementType.IN.ToString(),
-                                Quantity = item.Quantity,
-                                ReferenceType = "order_cancel",
-                                Note = $"Restock from cancelled order {order.OrderCode}",
-                                CreatedBy = currentUserId ?? order.UserId,
-                                CreatedAt = DateTime.UtcNow
-                            });
-                        }
+                        await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+
+                        cancelMovementDtos.Add(new InventoryMovementDto
+                        {
+                            VariantId = item.VariantId,
+                            MovementType = WebBanHang.Model.Enums.InventoryMovementType.IN.ToString(),
+                            Quantity = item.Quantity,
+                            ReferenceType = "order_cancel",
+                            ReferenceId = order.OrderId,
+                            Note = $"Restock from cancelled order {order.OrderCode}",
+                            CreatedBy = currentUserId ?? order.UserId,
+                            CreatedAt = DateTime.UtcNow
+                        });
                     }
 
-                    // 2. XÓA VẬT LÝ ĐƠN HÀNG (Yêu cầu khách hàng: Hủy là xóa sạch)
+                    if (cancelMovementDtos.Count > 0)
+                    {
+                        await _inventoryMovementService.AddRangeAsync(cancelMovementDtos);
+                    }
+
+                    // 2. XÓA VẬT LÝ ĐƠN HÀNG 
                     _unitOfWork.Order.Remove(order);
                     
                     await _unitOfWork.SaveAsync();
@@ -261,26 +346,31 @@ namespace WebBanHang.Service.Services
 
                     return ApiResponse<bool>.Succeeded(true, "Order has been cancelled and deleted from system.");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
-                    return ApiResponse<bool>.Failed(ex.Message);
+                    return ApiResponse<bool>.Failed("Internal server error while cancelling order.", 500);
                 }
             }
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id)
         {
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == id);
-            if (order == null) return ApiResponse<bool>.Failed("Order not found", 404);
-            _unitOfWork.Order.Remove(order);
-            await _unitOfWork.SaveAsync();
-            return ApiResponse<bool>.Succeeded(true, "Order deleted permanently.");
+            // Admin delete phải đi qua flow huỷ cứng có hoàn kho + movement để tránh lệch tồn.
+            return await CancelOrderAsync(id, null);
         }
 
-        public Task<OrderDto?> CreateOrderFromCart(long cartId)
+        private async Task<string?> GenerateUniqueOrderCodeAsync()
         {
-            throw new NotImplementedException();
+            for (var i = 0; i < 5; i++)
+            {
+                var code = $"ORD-{DateTime.UtcNow:yyMMddHHmmssfff}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+                var existing = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderCode == code);
+                if (existing == null) return code;
+            }
+
+            return null;
         }
+
     }
 }
