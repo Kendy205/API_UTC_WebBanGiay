@@ -201,5 +201,273 @@ namespace WebBanHang.BLL.Services
                 }
             };
         }
+
+        /// <summary>Lấy tổng quan đầu ngày (Header Dashboard)</summary>
+        public async Task<DashboardHeaderSummaryDto> GetHeaderSummaryAsync()
+        {
+            //  Tính thời gian hôm nay
+
+            var now = DateTime.UtcNow;
+            var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
+            var todayEnd = now; // Tới giờ hiện tại
+
+            //  Lấy dữ liệu đơn hàng hôm nay
+
+            var todayOrders = await _unitOfWork.Order.GetAllAsync(
+                x => x.CreatedAt >= todayStart && x.CreatedAt <= todayEnd
+            );
+
+            var todayOrdersList = todayOrders.ToList();
+
+            //  Tính toán doanh số hôm nay
+    
+            var todayRevenue = todayOrdersList.Sum(o => o.TotalAmount);
+            var todayOrderCount = todayOrdersList.Count;
+
+            //  Tính thời gian hôm qua
+
+            var yesterdayStart = todayStart.AddDays(-1);
+            var yesterdayEnd = todayStart.AddSeconds(-1);
+
+            //  Lấy dữ liệu đơn hàng hôm qua
+
+            var yesterdayOrders = await _unitOfWork.Order.GetAllAsync(
+                x => x.CreatedAt >= yesterdayStart && x.CreatedAt <= yesterdayEnd
+            );
+
+            var yesterdayOrdersList = yesterdayOrders.ToList();
+            var yesterdayRevenue = yesterdayOrdersList.Sum(o => o.TotalAmount);
+
+            //  Tính toán so sánh doanh số hôm nay và hôm qua
+            
+            var difference = todayRevenue - yesterdayRevenue;
+            var percentageChange = yesterdayRevenue > 0
+                ? Math.Round((difference / yesterdayRevenue) * 100, 2)
+                : 0;
+
+            var revenueComparison = new ComparisonDto
+            {
+                Difference = difference,
+                PercentageChange = percentageChange,
+                IsGrowth = difference > 0
+            };
+
+            //  Lấy sản phẩm cạn hàng (stock < 50)
+
+            var lowStockVariants = await _unitOfWork.ProductVariant.GetAllAsync(
+                x => x.StockQuantity < 50 && x.IsActive,
+                includeProperties: "Product,Size,Color"
+            );
+
+            var lowStockList = lowStockVariants
+                .OrderBy(v => v.StockQuantity) // Sắp xếp theo số lượng (ít nhất trước)
+                .Take(10) // Giới hạn 10 item
+                .Select(v => new ProductLowStockDto
+                {
+                    ProductId = v.ProductId,
+                    VariantId = v.VariantId,
+                    ProductName = v.Product?.ProductName ?? string.Empty,
+                    Sku = v.Sku,
+                    SizeLabel = v.Size?.SizeLabel,
+                    ColorName = v.Color?.ColorName,
+                    StockQuantity = v.StockQuantity,
+                    LowStockThreshold = v.LowStockThreshold
+                })
+                .ToList();
+
+            //  Tính tổng sản phẩm cạn hàng
+
+            var totalLowStockProducts = lowStockVariants.Count();
+
+            //  Tạo response
+
+            return new DashboardHeaderSummaryDto
+            {
+                TodayRevenue = todayRevenue,
+                TodayOrderCount = todayOrderCount,
+                RevenueComparison = revenueComparison,
+                LowStockProducts = lowStockList,
+                TotalLowStockProducts = totalLowStockProducts,
+                FetchedAt = DateTime.UtcNow
+            };
+        }
+
+        public async Task<AnalyticsOverviewDto> GetAnalyticsOverviewAsync()
+        {
+            var now = DateTime.UtcNow;
+            var startOfYear = new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var endOfYear = new DateTime(now.Year, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+            // Get all orders for current year
+            var allOrders = await _unitOfWork.Order.GetAllAsync(
+                x => x.CreatedAt >= startOfYear && x.CreatedAt <= endOfYear
+            );
+
+            var orderList = allOrders.ToList();
+
+            var totalRevenue = orderList.Sum(o => o.TotalAmount);
+            var totalOrders = orderList.Count;
+            var avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+            // Get new customers (users who made their first order in current year)
+            var allUsers = await _unitOfWork.User.GetAllAsync();
+            var userList = allUsers.ToList();
+
+            var newCustomers = 0;
+            foreach (var user in userList)
+            {
+                var firstOrder = orderList.Where(o => o.UserId == user.UserId).OrderBy(o => o.CreatedAt).FirstOrDefault();
+                if (firstOrder != null && firstOrder.CreatedAt >= startOfYear && firstOrder.CreatedAt <= endOfYear)
+                {
+                    newCustomers++;
+                }
+            }
+
+            // Revenue by month
+            var revenueByMonth = new List<RevenueByMonthDto>();
+            var monthNames = new[] { "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12" };
+
+            for (int month = 1; month <= 12; month++)
+            {
+                var monthOrders = orderList.Where(o => o.CreatedAt.Month == month).ToList();
+                revenueByMonth.Add(new RevenueByMonthDto
+                {
+                    Month = monthNames[month - 1],
+                    Revenue = monthOrders.Sum(o => o.TotalAmount)
+                });
+            }
+
+            // Orders by status
+            var ordersByStatus = new Dictionary<string, int>();
+            var statusGroups = orderList.GroupBy(o => o.OrderStatus);
+            foreach (var group in statusGroups)
+            {
+                ordersByStatus[group.Key] = group.Count();
+            }
+
+            return new AnalyticsOverviewDto
+            {
+                TotalRevenue = totalRevenue,
+                TotalOrders = totalOrders,
+                NewCustomers = newCustomers,
+                AvgOrderValue = avgOrderValue,
+                RevenueByMonth = revenueByMonth,
+                OrdersByStatus = ordersByStatus
+            };
+        }
+
+        public async Task<IEnumerable<RevenueChartDto>> GetRevenueChartAsync(DateTime from, DateTime to)
+        {
+            var orders = await _unitOfWork.Order.GetAllAsync(
+                x => x.CreatedAt >= from && x.CreatedAt <= to
+            );
+
+            var orderList = orders.ToList();
+            var revenueChart = new List<RevenueChartDto>();
+
+            // Group by date
+            var groupedByDate = orderList.GroupBy(o => o.CreatedAt.Date);
+
+            foreach (var dateGroup in groupedByDate.OrderBy(g => g.Key))
+            {
+                var dateOrders = dateGroup.ToList();
+                revenueChart.Add(new RevenueChartDto
+                {
+                    Date = dateGroup.Key.ToString("MM/dd"),
+                    Revenue = dateOrders.Sum(o => o.TotalAmount),
+                    Orders = dateOrders.Count
+                });
+            }
+
+            return revenueChart;
+        }
+
+        public async Task<SalesReportDto> GetSalesReportAsync(DateTime from, DateTime to, string groupBy = "day")
+        {
+            var orders = await _unitOfWork.Order.GetAllAsync(
+                x => x.CreatedAt >= from && x.CreatedAt <= to
+            );
+
+            var orderList = orders.ToList();
+
+            var summary = new SalesReportSummaryDto
+            {
+                TotalRevenue = orderList.Sum(o => o.TotalAmount),
+                TotalOrders = orderList.Count,
+                AvgOrderValue = orderList.Count > 0 ? orderList.Sum(o => o.TotalAmount) / orderList.Count : 0,
+                ReturnRate = 2.4m // This is a placeholder - you may need to calculate based on your business logic
+            };
+
+            var data = new List<SalesReportPeriodDto>();
+
+            if (groupBy?.ToLower() == "day")
+            {
+                var groupedByDate = orderList.GroupBy(o => o.CreatedAt.Date);
+                foreach (var dateGroup in groupedByDate.OrderBy(g => g.Key))
+                {
+                    var dateOrders = dateGroup.ToList();
+                    var revenue = dateOrders.Sum(o => o.TotalAmount);
+                    var count = dateOrders.Count;
+
+                    data.Add(new SalesReportPeriodDto
+                    {
+                        Period = dateGroup.Key.ToString("dd/MM/yyyy"),
+                        Revenue = revenue,
+                        Orders = count,
+                        AvgValue = count > 0 ? revenue / count : 0
+                    });
+                }
+            }
+            else if (groupBy?.ToLower() == "week")
+            {
+                var groupedByWeek = orderList.GroupBy(o =>
+                {
+                    var date = o.CreatedAt.Date;
+                    int dayOfWeek = (int)date.DayOfWeek;
+                    var startOfWeek = date.AddDays(-dayOfWeek);
+                    return startOfWeek;
+                });
+
+                foreach (var weekGroup in groupedByWeek.OrderBy(g => g.Key))
+                {
+                    var weekOrders = weekGroup.ToList();
+                    var revenue = weekOrders.Sum(o => o.TotalAmount);
+                    var count = weekOrders.Count;
+                    var endOfWeek = weekGroup.Key.AddDays(6);
+
+                    data.Add(new SalesReportPeriodDto
+                    {
+                        Period = $"({weekGroup.Key:dd/MM} - {endOfWeek:dd/MM})",
+                        Revenue = revenue,
+                        Orders = count,
+                        AvgValue = count > 0 ? revenue / count : 0
+                    });
+                }
+            }
+            else if (groupBy?.ToLower() == "month")
+            {
+                var groupedByMonth = orderList.GroupBy(o => new { o.CreatedAt.Year, o.CreatedAt.Month });
+                foreach (var monthGroup in groupedByMonth.OrderBy(g => (g.Key.Year, g.Key.Month)))
+                {
+                    var monthOrders = monthGroup.ToList();
+                    var revenue = monthOrders.Sum(o => o.TotalAmount);
+                    var count = monthOrders.Count;
+
+                    data.Add(new SalesReportPeriodDto
+                    {
+                        Period = new DateTime(monthGroup.Key.Year, monthGroup.Key.Month, 1).ToString("MMMM yyyy"),
+                        Revenue = revenue,
+                        Orders = count,
+                        AvgValue = count > 0 ? revenue / count : 0
+                    });
+                }
+            }
+
+            return new SalesReportDto
+            {
+                Summary = summary,
+                Data = data
+            };
+        }
     }
 }
