@@ -8,7 +8,7 @@ using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.OrderController
 {
-    [Route("api/admin/orders")]
+    [Route("api/Admin/orders")]
     [ApiController]
     [Authorize(Roles = "ADMIN")]
     public class AdminOrdersController : ControllerBase
@@ -32,9 +32,9 @@ namespace WebBanHang.Controllers.OrderController
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetOrders()
+        public async Task<IActionResult> GetOrders([FromQuery] AdminOrderQueryDto queryDto)
         {
-            var result = await _adminOrderService.GetAllOrdersAsync();
+            var result = await _adminOrderService.GetOrdersAsync(queryDto);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -42,6 +42,16 @@ namespace WebBanHang.Controllers.OrderController
         public async Task<IActionResult> GetById(long id)
         {
             var result = await _adminOrderService.GetOrderByIdAsync(id);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpPut("{id:long}/status")]
+        public async Task<IActionResult> UpdateStatus(long id, [FromBody] AdminUpdateOrderStatusDto dto)
+        {
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId <= 0) return Unauthorized(ApiResponse<object>.Failed("Unauthorized", 401));
+
+            var result = await _adminOrderService.UpdateOrderStatusAsync(id, dto.Status, currentUserId);
             return StatusCode(result.StatusCode, result);
         }
 
@@ -63,7 +73,6 @@ namespace WebBanHang.Controllers.OrderController
         [HttpPut("{id:long}")]
         public async Task<IActionResult> Update(long id, [FromBody] OrderUpdateDto dto)
         {
-            dto.OrderId = id;
             var result = await _adminOrderService.UpdateOrderAsync(id, dto);
             return StatusCode(result.StatusCode, result);
         }
@@ -71,8 +80,12 @@ namespace WebBanHang.Controllers.OrderController
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id)
         {
-            var result = await _adminOrderService.DeleteOrderAsync(id);
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId <= 0) return Unauthorized(ApiResponse<object>.Failed("Unauthorized", 401));
+
+            var result = await _adminOrderService.DeleteOrderAsync(id, currentUserId);
             return StatusCode(result.StatusCode, result);
         }
+
     }
 }

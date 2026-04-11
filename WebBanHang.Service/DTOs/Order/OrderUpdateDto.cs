@@ -4,7 +4,6 @@ namespace WebBanHang.Service.DTOs.Order
 {
     public class OrderUpdateDto
     {
-        public long OrderId { get; set; }
         public string? OrderCode { get; set; }
         public string? OrderStatus { get; set; }
         public string? PaymentStatus { get; set; }

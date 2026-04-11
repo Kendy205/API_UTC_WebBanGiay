@@ -16,14 +16,19 @@ namespace WebBanHang.Service.Services
             _orderService = orderService;
         }
 
-        public Task<ApiResponse<IEnumerable<OrderDto>>> GetAllOrdersAsync()
+        public Task<ApiResponse<AdminOrderListResponseDto>> GetOrdersAsync(AdminOrderQueryDto queryDto)
         {
-            return _orderService.GetOrdersAsync(0, true);
+            return _orderService.GetAdminOrdersAsync(queryDto);
         }
 
-        public Task<ApiResponse<OrderDto?>> GetOrderByIdAsync(long orderId)
+        public Task<ApiResponse<AdminOrderDetailDto?>> GetOrderByIdAsync(long orderId)
         {
-            return _orderService.GetByIdAsync(orderId, 0, true);
+            return _orderService.GetAdminOrderDetailAsync(orderId);
+        }
+
+        public Task<ApiResponse<AdminOrderStatusResultDto>> UpdateOrderStatusAsync(long orderId, string status, long adminUserId)
+        {
+            return _orderService.AdminUpdateOrderStatusAsync(orderId, status, adminUserId);
         }
 
         public Task<ApiResponse<OrderDto>> CheckoutAsync(CheckoutDto checkoutDto, long adminUserId)
@@ -37,9 +42,10 @@ namespace WebBanHang.Service.Services
             return _orderService.AdminUpdateOrderAsync(orderId, updateDto);
         }
 
-        public Task<ApiResponse<bool>> DeleteOrderAsync(long orderId)
+        public Task<ApiResponse<bool>> DeleteOrderAsync(long orderId, long adminUserId)
         {
-            return _orderService.DeleteAsync(orderId);
+            return _orderService.DeleteAsync(orderId, adminUserId);
         }
+
     }
 }

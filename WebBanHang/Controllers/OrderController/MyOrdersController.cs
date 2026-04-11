@@ -66,13 +66,13 @@ namespace WebBanHang.Controllers.OrderController
             return CreatedAtAction(nameof(GetMyOrderById), new { id = result.Data?.OrderId }, result);
         }
 
-        [HttpPost("cancel")]
-        public async Task<IActionResult> Cancel([FromBody] CancelOrderDto dto)
+        [HttpPost("{id:long}/cancel")]
+        public async Task<IActionResult> Cancel(long id)
         {
             var currentUserId = GetCurrentUserId();
             if (currentUserId <= 0) return Unauthorized(ApiResponse<object>.Failed("Unauthorized", 401));
 
-            var result = await _myOrderService.CancelMyOrderAsync(dto.OrderId, currentUserId);
+            var result = await _myOrderService.CancelMyOrderAsync(id, currentUserId);
             return StatusCode(result.StatusCode, result);
         }
     }

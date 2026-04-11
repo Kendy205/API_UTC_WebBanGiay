@@ -56,6 +56,118 @@ namespace WebBanHang.Service.Services
             return ApiResponse<OrderDto?>.Succeeded(dto);
         }
 
+        public async Task<ApiResponse<AdminOrderListResponseDto>> GetAdminOrdersAsync(AdminOrderQueryDto queryDto)
+        {
+            var page = queryDto.Page <= 0 ? 1 : queryDto.Page;
+            var pageSize = queryDto.PageSize <= 0 ? 10 : queryDto.PageSize;
+
+            var entities = await _unitOfWork.Order.GetAllAsync(includeProperties: "User,OrderItems,Payments");
+            IEnumerable<Order> query = entities;
+
+            if (!string.IsNullOrWhiteSpace(queryDto.Status))
+            {
+                if (!TryNormalizeAdminStatus(queryDto.Status, out var normalizedStatus))
+                {
+                    return ApiResponse<AdminOrderListResponseDto>.Failed("Invalid status filter.", 400);
+                }
+
+                query = query.Where(x => string.Equals(x.OrderStatus, normalizedStatus, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(queryDto.Search))
+            {
+                var search = queryDto.Search.Trim();
+                query = query.Where(x =>
+                    (!string.IsNullOrWhiteSpace(x.OrderCode) && x.OrderCode.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                    (x.User != null && !string.IsNullOrWhiteSpace(x.User.FullName) && x.User.FullName.Contains(search, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            var total = query.Count();
+            var items = query
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(MapAdminOrderListItem)
+                .ToList();
+
+            var response = new AdminOrderListResponseDto
+            {
+                Items = items,
+                Total = total,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return ApiResponse<AdminOrderListResponseDto>.Succeeded(response);
+        }
+
+        public async Task<ApiResponse<AdminOrderDetailDto?>> GetAdminOrderDetailAsync(long id)
+        {
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(
+                x => x.OrderId == id,
+                includeProperties: "User,OrderItems.ProductVariant,ShippingAddress,Payments");
+
+            if (order == null) return ApiResponse<AdminOrderDetailDto?>.Failed("Order not found", 404);
+
+            var detail = new AdminOrderDetailDto
+            {
+                Id = order.OrderId,
+                CustomerName = order.User?.FullName ?? string.Empty,
+                Address = BuildAddressLine(order.ShippingAddress),
+                Total = order.TotalAmount,
+                Status = ToAdminStatusLabel(order.OrderStatus),
+                PaymentMethod = NormalizeAdminPaymentMethodLabel(order.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMethod),
+                Items = order.OrderItems.Select(x => new AdminOrderDetailItemDto
+                {
+                    ProductId = x.ProductVariant?.ProductId ?? x.VariantId,
+                    ProductName = x.ProductNameSnapshot,
+                    Quantity = x.Quantity,
+                    UnitPrice = x.UnitPrice
+                }).ToList()
+            };
+
+            return ApiResponse<AdminOrderDetailDto?>.Succeeded(detail);
+        }
+
+        public async Task<ApiResponse<AdminOrderStatusResultDto>> AdminUpdateOrderStatusAsync(long id, string status, long adminUserId)
+        {
+            if (!TryNormalizeAdminUpdatableStatus(status, out var normalizedStatus))
+            {
+                return ApiResponse<AdminOrderStatusResultDto>.Failed("Invalid status.", 400);
+            }
+
+            if (normalizedStatus == WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString())
+            {
+                var cancelResult = await CancelOrderAsync(id, null);
+                if (!cancelResult.Success) return ApiResponse<AdminOrderStatusResultDto>.Failed(cancelResult.Message, cancelResult.StatusCode);
+
+                return ApiResponse<AdminOrderStatusResultDto>.Succeeded(new AdminOrderStatusResultDto
+                {
+                    Id = id,
+                    Status = "Cancelled"
+                });
+            }
+
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == id);
+            if (order == null) return ApiResponse<AdminOrderStatusResultDto>.Failed("Order not found", 404);
+
+            if (string.Equals(order.OrderStatus, WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                return ApiResponse<AdminOrderStatusResultDto>.Failed("Cancelled order cannot be moved to another status.", 400);
+            }
+
+            order.OrderStatus = normalizedStatus;
+            order.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Order.Update(order);
+            await _unitOfWork.SaveAsync();
+
+            return ApiResponse<AdminOrderStatusResultDto>.Succeeded(new AdminOrderStatusResultDto
+            {
+                Id = id,
+                Status = ToAdminStatusLabel(order.OrderStatus)
+            });
+        }
+
         public async Task<ApiResponse<OrderDto>> PlaceOrderAsync(CheckoutDto checkoutDto, long userId)
         {
             if (userId <= 0)
@@ -298,7 +410,10 @@ namespace WebBanHang.Service.Services
             if (currentUserId.HasValue && order.UserId != currentUserId.Value)
                 return ApiResponse<bool>.Failed("Permission denied", 403);
 
-            // Chỉ cho phép hủy khi chưa giao
+            if (string.Equals(order.OrderStatus, WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+                return ApiResponse<bool>.Failed("Order is already cancelled.", 400);
+
+            // Chỉ cho phép hủy khi chưa giao xong
             if (order.OrderStatus == WebBanHang.Model.Enums.OrderStatus.Shipped.ToString() || order.OrderStatus == WebBanHang.Model.Enums.OrderStatus.Delivered.ToString())
                 return ApiResponse<bool>.Failed("Cannot cancel order that has been shipped or delivered.", 400);
 
@@ -338,13 +453,15 @@ namespace WebBanHang.Service.Services
                         await _inventoryMovementService.AddRangeAsync(cancelMovementDtos);
                     }
 
-                    // 2. XÓA VẬT LÝ ĐƠN HÀNG 
-                    _unitOfWork.Order.Remove(order);
+                    // 2. Soft cancel: giữ đơn, đổi trạng thái sang Cancelled.
+                    order.OrderStatus = WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString();
+                    order.UpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.Order.Update(order);
                     
                     await _unitOfWork.SaveAsync();
                     await transaction.CommitAsync();
 
-                    return ApiResponse<bool>.Succeeded(true, "Order has been cancelled and deleted from system.");
+                    return ApiResponse<bool>.Succeeded(true, "Order has been cancelled.");
                 }
                 catch (Exception)
                 {
@@ -354,10 +471,171 @@ namespace WebBanHang.Service.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(long id)
+        public async Task<ApiResponse<bool>> DeleteAsync(long id, long deletedByUserId)
         {
-            // Admin delete phải đi qua flow huỷ cứng có hoàn kho + movement để tránh lệch tồn.
-            return await CancelOrderAsync(id, null);
+            if (deletedByUserId <= 0)
+            {
+                return ApiResponse<bool>.Failed("Unauthorized", 401);
+            }
+
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(
+                o => o.OrderId == id,
+                includeProperties: "OrderItems,Payments");
+
+            if (order == null) return ApiResponse<bool>.Failed("Order not found", 404);
+
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    var shouldRestock = !string.Equals(order.OrderStatus, WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(order.OrderStatus, WebBanHang.Model.Enums.OrderStatus.Shipped.ToString(), StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(order.OrderStatus, WebBanHang.Model.Enums.OrderStatus.Delivered.ToString(), StringComparison.OrdinalIgnoreCase);
+
+                    if (shouldRestock && order.OrderItems.Any())
+                    {
+                        var deleteMovementDtos = new List<InventoryMovementDto>();
+
+                        foreach (var item in order.OrderItems)
+                        {
+                            if (item.Quantity <= 0)
+                            {
+                                await transaction.RollbackAsync();
+                                return ApiResponse<bool>.Failed("Invalid order item quantity detected.", 409);
+                            }
+
+                            await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+
+                            deleteMovementDtos.Add(new InventoryMovementDto
+                            {
+                                VariantId = item.VariantId,
+                                MovementType = InventoryMovementType.IN.ToString(),
+                                Quantity = item.Quantity,
+                                ReferenceType = "order_delete",
+                                ReferenceId = order.OrderId,
+                                Note = $"Restock from hard-deleted order {order.OrderCode}",
+                                CreatedBy = deletedByUserId,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+
+                        await _inventoryMovementService.AddRangeAsync(deleteMovementDtos);
+                    }
+
+                    if (order.Payments.Any())
+                    {
+                        _unitOfWork.Payment.RemoveRange(order.Payments);
+                    }
+
+                    if (order.OrderItems.Any())
+                    {
+                        _unitOfWork.OrderItem.RemoveRange(order.OrderItems);
+                    }
+
+                    _unitOfWork.Order.Remove(order);
+                    await _unitOfWork.SaveAsync();
+                    await transaction.CommitAsync();
+
+                    return ApiResponse<bool>.Succeeded(true, "Order deleted permanently.");
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<bool>.Failed("Internal server error while deleting order.", 500);
+                }
+            }
+        }
+
+        private static AdminOrderListItemDto MapAdminOrderListItem(Order order)
+        {
+            return new AdminOrderListItemDto
+            {
+                Id = order.OrderId,
+                CustomerName = order.User?.FullName ?? string.Empty,
+                Total = order.TotalAmount,
+                Status = ToAdminStatusLabel(order.OrderStatus),
+                CreatedAt = order.CreatedAt,
+                ItemCount = order.OrderItems?.Count ?? 0,
+                PaymentMethod = NormalizeAdminPaymentMethodLabel(order.Payments?.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMethod)
+            };
+        }
+
+        private static string BuildAddressLine(Address? address)
+        {
+            if (address == null) return string.Empty;
+
+            var segments = new[]
+            {
+                address.StreetAddress,
+                address.Ward,
+                address.District,
+                address.Province
+            };
+
+            return string.Join(", ", segments.Where(x => !string.IsNullOrWhiteSpace(x)));
+        }
+
+        private static string ToAdminStatusLabel(string status)
+        {
+            if (string.Equals(status, WebBanHang.Model.Enums.OrderStatus.Shipped.ToString(), StringComparison.OrdinalIgnoreCase))
+                return "Shipping";
+
+            if (string.Equals(status, WebBanHang.Model.Enums.OrderStatus.Delivered.ToString(), StringComparison.OrdinalIgnoreCase))
+                return "Completed";
+
+            return status;
+        }
+
+        private static bool TryNormalizeAdminStatus(string? rawStatus, out string normalizedStatus)
+        {
+            normalizedStatus = string.Empty;
+            if (string.IsNullOrWhiteSpace(rawStatus)) return false;
+
+            var value = rawStatus.Trim().ToLowerInvariant();
+            normalizedStatus = value switch
+            {
+                "pending" => WebBanHang.Model.Enums.OrderStatus.Pending.ToString(),
+                "confirmed" => WebBanHang.Model.Enums.OrderStatus.Confirmed.ToString(),
+                "shipping" => WebBanHang.Model.Enums.OrderStatus.Shipped.ToString(),
+                "shipped" => WebBanHang.Model.Enums.OrderStatus.Shipped.ToString(),
+                "completed" => WebBanHang.Model.Enums.OrderStatus.Delivered.ToString(),
+                "delivered" => WebBanHang.Model.Enums.OrderStatus.Delivered.ToString(),
+                "cancelled" => WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString(),
+                "canceled" => WebBanHang.Model.Enums.OrderStatus.Cancelled.ToString(),
+                _ => string.Empty
+            };
+
+            return !string.IsNullOrWhiteSpace(normalizedStatus);
+        }
+
+        private static bool TryNormalizeAdminUpdatableStatus(string? rawStatus, out string normalizedStatus)
+        {
+            normalizedStatus = string.Empty;
+            if (!TryNormalizeAdminStatus(rawStatus, out var candidate))
+            {
+                return false;
+            }
+
+            if (string.Equals(candidate, WebBanHang.Model.Enums.OrderStatus.Pending.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            normalizedStatus = candidate;
+            return true;
+        }
+
+        private static string NormalizeAdminPaymentMethodLabel(string? rawMethod)
+        {
+            var method = rawMethod?.Trim().ToLowerInvariant();
+            return method switch
+            {
+                "cod" => "COD",
+                "banking" => "Banking",
+                "bank_transfer" => "Banking",
+                "banktransfer" => "Banking",
+                _ => rawMethod?.Trim() ?? string.Empty
+            };
         }
 
         private async Task<string?> GenerateUniqueOrderCodeAsync()

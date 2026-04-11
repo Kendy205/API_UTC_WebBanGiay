@@ -40,6 +40,7 @@ builder.Services.AddScoped<IInventoryMovementService, InventoryMovementService>(
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IMyOrderService, MyOrderService>();
 builder.Services.AddScoped<IAdminOrderService, AdminOrderService>();
+builder.Services.AddScoped<IAdminPaymentService, AdminPaymentService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
