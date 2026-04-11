@@ -84,6 +84,8 @@ namespace WebBanHang.Service.Profiles
                 .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.ProductVariant.StockQuantity));
             CreateMap<Cart, CartDto>()
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems)); // Map danh sách item
+
+            CreateMap<Payment, PaymentDto>();
         }
     }
 }
