@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using WebBanHang.BLL.IServices;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.IServices;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Model;
 using WebBanHang.Service.DTOs.Model;
 

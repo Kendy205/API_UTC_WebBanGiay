@@ -4,13 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using WebBanHang.BLL.IServices;
-using WebBanHang.BLL.Services;
+using WebBanHang.Service.IServices;
+using WebBanHang.Service.Services;
 using WebBanHang.Data;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.Helpers;
-using WebBanHang.Service.IServices;
-using WebBanHang.Service.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

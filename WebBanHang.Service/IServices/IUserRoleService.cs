@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Model;
 
-namespace WebBanHang.BLL.IServices
+namespace WebBanHang.Service.IServices
 {
     public interface IUserRoleService
     {

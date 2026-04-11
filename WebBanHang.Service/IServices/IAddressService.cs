@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Model;
 
-namespace WebBanHang.BLL.IServices
+namespace WebBanHang.Service.IServices
 {
     public interface IAddressService
     {
@@ -11,5 +11,7 @@ namespace WebBanHang.BLL.IServices
         Task AddAsync(AddressDto dto);
         Task UpdateAsync(long id, AddressDto dto);
         Task DeleteAsync(long id);
+
+        Task<IEnumerable<AddressDto>> GetByUserIdAsync(long userId);
     }
 }

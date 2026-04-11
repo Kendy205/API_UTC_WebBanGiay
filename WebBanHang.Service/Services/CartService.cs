@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
 using AutoMapper;
-using WebBanHang.BLL.IServices;
+using WebBanHang.Service.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
 
-namespace WebBanHang.BLL.Services
+namespace WebBanHang.Service.Services
 {
     public class CartService : ICartService
     {
@@ -41,9 +41,9 @@ namespace WebBanHang.BLL.Services
 
         public async Task<CartDto> GetCartByUserId(long userId)
         {
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId, 
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId,
                 includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
-);
+                );
             return _mapper.Map<CartDto>(entity);
         }
 

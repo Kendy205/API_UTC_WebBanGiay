@@ -9,14 +9,16 @@ using WebBanHang.Model;
 using WebBanHang.Service.DTOs.Model;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace WebBanHang.Profiles
+namespace WebBanHang.Service.Profiles
 {
     public class MappingProfile : Profile
     {
         public MappingProfile()
         {
             // Tự động map các trường giống tên nhau.
-            // Với các trường khác tên (Làm phẳng dữ liệu), ta cấu hình như sau:
+
+
+            //Product <-> ProductDto: map CategoryName và BrandName từ navigation properties, ignore các khóa chính và khóa ngoại khi map ngược lại
             CreateMap<Product, ProductDto>()
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.CategoryName))
                 .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand.BrandName));
@@ -25,7 +27,7 @@ namespace WebBanHang.Profiles
                 .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
                 .ForMember(dest => dest.BrandId, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
+            // ProductVariant <-> ProductVariantDto: map SizeLabel, SizeSystem, ColorName, ProductName từ navigation properties, ignore các khóa chính và khóa ngoại khi map ngược lại
             CreateMap<ProductVariant, ProductVariantDto>()
                 .ForMember(dest => dest.SizeLabel, opt => opt.MapFrom(src => src.Size.SizeLabel))
                 .ForMember(dest => dest.SizeSystem, opt => opt.MapFrom(src => src.Size.SizeSystem))
@@ -37,31 +39,37 @@ namespace WebBanHang.Profiles
                 .ForMember(dest => dest.ColorId, opt => opt.Ignore())
                 .ForMember(dest => dest.ProductId, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
+            // Color <-> ColorDto và Size <-> SizeDto: map cơ bản, ignore khóa chính khi map ngược lại
             CreateMap<Color, ColorDto>();
             CreateMap<ColorDto, Color>().ForMember(dest => dest.ColorId, opt => opt.Ignore());
-
+            // Size <-> SizeDto: map cơ bản, ignore khóa chính khi map ngược lại
             CreateMap<Size, SizeDto>();
             CreateMap<SizeDto, Size>().ForMember(dest => dest.SizeId, opt => opt.Ignore());
-
-
+            // Order <-> OrderDto: map CustomerName từ navigation property User.FullName, tự động map ngược lại
             CreateMap<Order, OrderDto>()
                 .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName))
                 .ReverseMap();
 
-            CreateMap<OrderItem, OrderItemDto>().ReverseMap();
+            // Address <-> AddressDto: map cơ bản, tự động map ngược lại
             CreateMap<Address, AddressDto>();
             CreateMap<Address, AddressDto>().ReverseMap();
+            // 
+            CreateMap<Review, ReviewDto>();
+            CreateMap<ReviewDto, Review>()
+                .ForMember(dest => dest.ReviewId, opt => opt.Ignore()) // DB generates key
+                .ForMember(dest => dest.User, opt => opt.Ignore())     // navigation properties handled by EF
+                .ForMember(dest => dest.OrderItem, opt => opt.Ignore())
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+            // OrderItem <-> OrderItemDto: map cơ bản, tự động map ngược lại
             CreateMap<OrderItem, OrderItemDto>();
-           // CreateMap<Cart, CartDto>();
+            CreateMap<OrderItem, OrderItemDto>().ReverseMap();
+            // CreateMap<Cart, CartDto>();
             //CreateMap<CartItem, CartItemDto>();
             CreateMap<Review, ReviewDto>();
             // Map cơ bản cho các bảng khác
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Brand, BrandDto>().ReverseMap();
-
-            // ── CART & CARTITEM MAPPINGS ──────────────────────────
-
+            // CartItem <-> CartItemDto: map ProductId, VariantSku, ProductName, SizeName, ColorName từ navigation properties của ProductVariant, map StockQuantity từ ProductVariant, tự động map ngược lại
             CreateMap<CartItem, CartItemDto>()
                 // Lấy ProductId từ bảng ProductVariant
                 .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductVariant.ProductId))
@@ -74,9 +82,10 @@ namespace WebBanHang.Profiles
                 // Xuyên qua ProductVariant lấy tên Màu
                 .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
                 .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.ProductVariant.StockQuantity));
-
             CreateMap<Cart, CartDto>()
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems)); // Map danh sách item
+
+            CreateMap<Payment, PaymentDto>();
         }
     }
 }

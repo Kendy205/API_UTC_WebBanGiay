@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 using System.Text.Json.Serialization;
 
-namespace WebBanHang.DTOs.Common
+namespace WebBanHang.Service.DTOs.Common
 {
     public class ApiResponse<T>
     {
