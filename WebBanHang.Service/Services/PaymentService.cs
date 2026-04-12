@@ -68,7 +68,7 @@ namespace WebBanHang.Service.Services
             }
         }
 
-        public string CreateVnPayPaymentUrl(OrderDto order, HttpContext context )
+        public string CreateVnPayPaymentUrl(OrderDto order, HttpContext context)
         {
             var tmnCode = _configuration["Vnpay:TmnCode"];
             var hashSecret = _configuration["Vnpay:HashSecret"];
@@ -110,7 +110,6 @@ namespace WebBanHang.Service.Services
             }
 
             var vnp_orderId = Convert.ToInt64(vnpay.GetResponseData("vnp_TxnRef"));
-            var transactionCode = vnpay.GetResponseData("vnp_TransactionNo");
             var vnp_SecureHash = collections["vnp_SecureHash"];
             var hashSecret = _configuration["Vnpay:HashSecret"];
 
@@ -118,11 +117,11 @@ namespace WebBanHang.Service.Services
             bool checkSignature = vnpay.ValidateSignature(vnp_SecureHash, hashSecret);
             if (!checkSignature)
             {
-                return  ApiResponse<PaymentDto>.Failed("Chữ ký bảo mật không hợp lệ!");
+                return ApiResponse<PaymentDto>.Failed("Chữ ký bảo mật không hợp lệ!");
             }
 
             // 2. Lấy đơn hàng từ DB
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == vnp_orderId, includeProperties: "Payments");
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == vnp_orderId);
             if (order == null)
             {
                 return ApiResponse<PaymentDto>.Failed("Không tìm thấy thông tin đơn hàng.");
@@ -131,26 +130,8 @@ namespace WebBanHang.Service.Services
             // 3. Kiểm tra mã phản hồi từ VNPay (00 = Thành công)
             if (vnpay.GetResponseData("vnp_ResponseCode") == "00")
             {
-                var existingPayment = order.Payments
-                    .OrderByDescending(x => x.CreatedAt)
-                    .FirstOrDefault(x =>
-                        (!string.IsNullOrWhiteSpace(transactionCode) && x.TransactionCode == transactionCode) ||
-                        string.Equals(x.PaymentStatus, "Success", System.StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(x.PaymentStatus, WebBanHang.Model.Enums.PaymentStatus.Paid.ToString(), System.StringComparison.OrdinalIgnoreCase));
-
-                if (existingPayment != null)
-                {
-                    order.PaymentStatus = WebBanHang.Model.Enums.PaymentStatus.Paid.ToString();
-                    order.UpdatedAt = DateTime.UtcNow;
-                    _unitOfWork.Order.Update(order);
-                    await _unitOfWork.SaveAsync();
-
-                    var existingDto = _mapper.Map<PaymentDto>(existingPayment);
-                    return ApiResponse<PaymentDto>.Succeeded(existingDto, "Giao dịch VNPay đã được xử lý trước đó.");
-                }
-
                 // Cập nhật trạng thái đơn hàng
-                order.PaymentStatus = WebBanHang.Model.Enums.PaymentStatus.Paid.ToString();
+                order.PaymentStatus = "Paid";
                 order.UpdatedAt = DateTime.UtcNow;
                 _unitOfWork.Order.Update(order);
 
@@ -159,8 +140,7 @@ namespace WebBanHang.Service.Services
                 {
                     OrderId = order.OrderId,
                     PaymentMethod = "VNPay",
-                    PaymentProvider = "VNPay",
-                    TransactionCode = transactionCode,
+                    TransactionCode = vnpay.GetResponseData("vnp_TransactionNo"),
                     Amount = order.TotalAmount,
                     PaymentStatus = "Success",
                     PaidAt = DateTime.UtcNow,

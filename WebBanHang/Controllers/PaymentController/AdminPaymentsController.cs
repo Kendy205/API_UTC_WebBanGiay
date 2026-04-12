@@ -3,35 +3,34 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Payment;
-using WebBanHang.Service.Exceptions;
 using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.PaymentController
 {
-    [Route("api/Admin/payments")]
+    [Route("api/Admin/Payments")]
     [ApiController]
     [Authorize(Roles = "ADMIN")]
     public class AdminPaymentsController : ControllerBase
     {
-        private readonly IAdminPaymentService _adminPaymentService;
+        private readonly IAdminPaymentsService _adminPaymentsService;
 
-        public AdminPaymentsController(IAdminPaymentService adminPaymentService)
+        public AdminPaymentsController(IAdminPaymentsService adminPaymentsService)
         {
-            _adminPaymentService = adminPaymentService;
+            _adminPaymentsService = adminPaymentsService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetPayments([FromQuery] AdminPaymentQueryDto queryDto)
         {
-            try
+            var result = await _adminPaymentsService.GetPaymentsAsync(queryDto);
+            if (!result.Success)
             {
-                var result = await _adminPaymentService.GetPaymentsAsync(queryDto);
-                return Ok(ApiResponse<AdminPaymentListResponseDto>.Succeeded(result, "Lấy danh sách thanh toán thành công!"));
+                return result.StatusCode == 404
+                    ? NotFound(result)
+                    : BadRequest(result);
             }
-            catch (ApiException ex)
-            {
-                return BadRequest(ApiResponse<AdminPaymentListResponseDto>.Failed(ex.Message, ex.StatusCode));
-            }
+
+            return Ok(result);
         }
     }
 }

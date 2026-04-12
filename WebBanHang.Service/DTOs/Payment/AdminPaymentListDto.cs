@@ -16,7 +16,7 @@ namespace WebBanHang.Service.DTOs.Payment
 
     public class AdminPaymentListResponseDto
     {
-        public List<AdminPaymentListItemDto> Items { get; set; } = new();
+        public List<AdminPaymentListItemDto> Data { get; set; } = new();
         public int Total { get; set; }
         public int Page { get; set; }
         public int PageSize { get; set; }

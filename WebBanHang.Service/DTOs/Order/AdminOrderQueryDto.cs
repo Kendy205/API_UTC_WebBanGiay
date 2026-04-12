@@ -1,3 +1,5 @@
+using System;
+
 namespace WebBanHang.Service.DTOs.Order
 {
     public class AdminOrderQueryDto
@@ -6,5 +8,7 @@ namespace WebBanHang.Service.DTOs.Order
         public int PageSize { get; set; } = 10;
         public string? Status { get; set; }
         public string? Search { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
     }
 }
