@@ -47,8 +47,8 @@ builder.Services.AddScoped<ISizeService, SizeService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 // ─── 4. CẤU HÌNH AUTOMAPPER CHUẨN ────────────────────────────────
 builder.Services.AddAutoMapper(typeof(WebBanHang.Service.Services.AuthService).Assembly);
 //builder.Services.AddAutoMapper(typeof());

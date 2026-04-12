@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Dashboard;
 
-namespace WebBanHang.BLL.IServices
+namespace WebBanHang.Service.IServices
 {
     public interface IDashboardService
     {
