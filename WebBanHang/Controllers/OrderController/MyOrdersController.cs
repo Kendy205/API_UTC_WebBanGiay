@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Order;
 using WebBanHang.Service.IServices;
 

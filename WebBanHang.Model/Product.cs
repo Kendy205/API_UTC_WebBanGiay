@@ -44,6 +44,8 @@ namespace WebBanHang.Model
         public bool IsActive { get; set; } = true;
         [Column("img")]
         public string? Image { get; set; }
+        [Column("img_public_id")]
+        public string? ImagePublicId { get; set; }
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

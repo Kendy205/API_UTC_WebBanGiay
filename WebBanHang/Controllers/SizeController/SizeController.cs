@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using WebBanHang.BLL.IServices;
-using WebBanHang.DTOs.Common;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.SizeController
 {
@@ -10,6 +11,7 @@ namespace WebBanHang.Controllers.SizeController
     public class SizeController : ControllerBase
     {
         private readonly ISizeService _sizeService;
+
         public SizeController(ISizeService sizeService) => _sizeService = sizeService;
 
         [HttpGet]
@@ -24,12 +26,15 @@ namespace WebBanHang.Controllers.SizeController
         {
             var result = await _sizeService.GetByIdAsync(id);
             if (result == null)
+            {
                 return NotFound(ApiResponse<SizeDto>.Failed("Kích thước không tồn tại!", 404));
+            }
 
-            return Ok(ApiResponse<SizeDto>.Succeeded(result , "Lấy kích thước thành công!"));
+            return Ok(ApiResponse<SizeDto>.Succeeded(result, "Lấy kích thước thành công!"));
         }
 
         [HttpPost]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Create([FromBody] SizeDto dto)
         {
             await _sizeService.AddAsync(dto);
@@ -37,22 +42,28 @@ namespace WebBanHang.Controllers.SizeController
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Update(int id, [FromBody] SizeDto dto)
         {
             var existing = await _sizeService.GetByIdAsync(id);
             if (existing == null)
+            {
                 return NotFound(ApiResponse<string>.Failed("Kích thước không tồn tại!", 404));
+            }
 
             await _sizeService.UpdateAsync(id, dto);
             return Ok(ApiResponse<SizeDto>.Succeeded(dto, "Cập nhật kích thước thành công!"));
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Delete(int id)
         {
             var existing = await _sizeService.GetByIdAsync(id);
             if (existing == null)
+            {
                 return NotFound(ApiResponse<string>.Failed("Kích thước không tồn tại!", 404));
+            }
 
             await _sizeService.DeleteAsync(id);
             return Ok(ApiResponse<object>.Succeeded(null, "Xóa kích thước thành công!"));

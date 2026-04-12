@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Order;
 using WebBanHang.Service.IServices;

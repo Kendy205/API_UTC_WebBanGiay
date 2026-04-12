@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Payment;
 using WebBanHang.Service.IServices;

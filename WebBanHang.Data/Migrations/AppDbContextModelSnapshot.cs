@@ -521,6 +521,10 @@ namespace WebBanHang.Data.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("img");
 
+                    b.Property<string>("ImagePublicId")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("img_public_id");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasColumnName("is_active");

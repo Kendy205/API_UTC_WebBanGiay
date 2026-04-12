@@ -1,10 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using WebBanHang.BLL.IServices;
-using WebBanHang.DTOs.Common;
-using WebBanHang.Model;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.IServices;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -21,78 +20,72 @@ public class CartController : ControllerBase
         _cartItemService = cartItemService;
         _variantService = variantService;
     }
-     
+
     [HttpGet("mycart")]
-   
     public async Task<IActionResult> GetMyCart()
     {
         var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (userId == 0) 
+        if (userId == 0)
+        {
             return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
+        }
 
         var cart = await _cartService.GetActiveCartByUserIdAsync(userId);
-        if (cart == null) 
+        if (cart == null)
+        {
             return NotFound(ApiResponse<CartDto>.Failed("Giỏ hàng không tồn tại", 404));
+        }
 
         return Ok(ApiResponse<CartDto>.Succeeded(cart, "Lấy giỏ hàng thành công"));
     }
 
     [HttpPost("addcart")]
-  
     public async Task<IActionResult> AddItemToCart(AddCartItemRequest item)
     {
         var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (userId == 0) return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
-
+        if (userId == 0)
+        {
+            return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
+        }
 
         var cart = await _cartService.GetOrCreateCartForUserAsync(userId);
-        
         var variant = await _variantService.GetByIdAsync(item.VariantId);
         if (variant == null)
+        {
             return NotFound(ApiResponse<CartDto>.Failed("Biến thể không tồn tại", 404));
-        
+        }
+
         try
         {
             await _cartItemService.AddProductToCartAsync(cart.CartId, item.VariantId, item.Quantity);
-            //foreach (AddCartItemRequest item in request.variants)
-            //{
-            //    var variant = await _variantService.GetByIdAsync(item.VariantId);
-            //    if (variant == null) 
-            //       return NotFound(ApiResponse<CartDto>.Failed("Biến thể không tồn tại", 404));
-            //    await _cartItemService.AddProductToCartAsync(cart.CartId, item.VariantId, item.Quantity);
-            //}
-
             cart = await _cartService.GetOrCreateCartForUserAsync(userId);
             return Ok(ApiResponse<CartDto>.Succeeded(cart, "Cập nhật cart thành công"));
         }
         catch (InvalidOperationException e)
-        {            
+        {
             return BadRequest(ApiResponse<CartDto>.Failed(e.Message, 400));
         }
     }
 
     [HttpPut("items/{cartItemId}")]
-    
-    public async Task<IActionResult> UpdateItemQuantity(long cartItemId, [FromBody] UpdateQuantityRequest request)
+    public async Task<IActionResult> UpdateItemQuantity(long cartItemId, [FromBody] UpdateQuantityDto request)
     {
         try
         {
             var updatedCart = await _cartItemService.UpdateQuantityAsync(cartItemId, request.Quantity);
             return Ok(ApiResponse<CartDto>.Succeeded(updatedCart, "Cập nhật số lượng thành công"));
         }
-        catch (ArgumentException e1)
+        catch (ArgumentException e)
         {
-            return BadRequest(ApiResponse<CartDto>.Failed(e1.Message, 404));
+            return BadRequest(ApiResponse<CartDto>.Failed(e.Message, 404));
         }
-        catch (InvalidOperationException e2)
+        catch (InvalidOperationException e)
         {
-            return BadRequest(ApiResponse<CartDto>.Failed(e2.Message, 404));
-
+            return BadRequest(ApiResponse<CartDto>.Failed(e.Message, 404));
         }
     }
 
     [HttpDelete("items/{cartItemId}")]
- 
     public async Task<IActionResult> RemoveItemFromCart(long cartItemId)
     {
         try
@@ -100,38 +93,45 @@ public class CartController : ControllerBase
             var updatedCart = await _cartItemService.RemoveFromCartAsync(cartItemId);
             return Ok(ApiResponse<CartDto>.Succeeded(updatedCart, "Xóa sản phẩm thành công"));
         }
-        catch(InvalidOperationException e)
+        catch (InvalidOperationException e)
         {
             return BadRequest(ApiResponse<CartDto>.Failed(e.Message));
         }
     }
 
     [HttpDelete("items")]
-   
     public async Task<IActionResult> ClearCart()
     {
         var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-        if (userId == 0) 
+        if (userId == 0)
+        {
             return Unauthorized(ApiResponse<CartDto>.Failed("Hết hạn,Vui lòng đăng nhập", 401));
+        }
+
         var cart = await _cartService.GetActiveCartByUserIdAsync(userId);
+        if (cart == null)
+        {
+            return NotFound(ApiResponse<CartDto>.Failed("Giỏ hàng không tồn tại", 404));
+        }
 
         await _cartItemService.ClearCartAsync(cart.CartId);
-        // Sau khi xóa, client có thể gọi lại GET /me để lấy cart rỗng, hoặc trả về cart rỗng luôn
         var emptyCart = await _cartService.GetByIdAsync(cart.CartId);
         return Ok(ApiResponse<CartDto>.Succeeded(emptyCart, "Đã xóa toàn bộ sản phẩm"));
     }
 
-    public class AddCartItemRequest { 
-        public long VariantId { get; set; } 
-        public int Quantity { get; set; } 
+    public class AddCartItemRequest
+    {
+        public long VariantId { get; set; }
+        public int Quantity { get; set; }
     }
 
-    public class AddToCartRequest { 
-        public List<AddCartItemRequest>? variants { get; set; }
+    public class AddToCartRequest
+    {
+        public List<AddCartItemRequest>? Variants { get; set; }
     }
 
-    public class UpdateQuantityRequest { 
-        public int Quantity { get; set; } 
+    public class UpdateQuantityDto
+    {
+        public int Quantity { get; set; }
     }
-    
 }

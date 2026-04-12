@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebBanHang.BLL.IServices;
+using WebBanHang.Service.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
 
-namespace WebBanHang.BLL.Services
+namespace WebBanHang.Service.Services
 {
     public class AddressService : IAddressService
     {
@@ -60,6 +60,12 @@ namespace WebBanHang.BLL.Services
                 _unitOfWork.Address.Remove(entity);
                 await _unitOfWork.SaveAsync();
             }
+        }
+
+        public async Task<IEnumerable<AddressDto>> GetByUserIdAsync(long userId)
+        {
+            var entity = await _unitOfWork.Address.GetAllAsync(x => x.UserId == userId);
+            return _mapper.Map<IEnumerable<AddressDto>>(entity);
         }
     }
 }
