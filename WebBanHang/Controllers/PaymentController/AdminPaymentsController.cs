@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Payment;
+using WebBanHang.Service.Exceptions;
 using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.PaymentController
@@ -21,8 +23,15 @@ namespace WebBanHang.Controllers.PaymentController
         [HttpGet]
         public async Task<IActionResult> GetPayments([FromQuery] AdminPaymentQueryDto queryDto)
         {
-            var result = await _adminPaymentService.GetPaymentsAsync(queryDto);
-            return StatusCode(result.StatusCode, result);
+            try
+            {
+                var result = await _adminPaymentService.GetPaymentsAsync(queryDto);
+                return Ok(ApiResponse<AdminPaymentListResponseDto>.Succeeded(result, "Lấy danh sách thanh toán thành công!"));
+            }
+            catch (ApiException ex)
+            {
+                return BadRequest(ApiResponse<AdminPaymentListResponseDto>.Failed(ex.Message, ex.StatusCode));
+            }
         }
     }
 }

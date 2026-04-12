@@ -110,6 +110,7 @@ namespace WebBanHang.Service.Services
             }
 
             var vnp_orderId = Convert.ToInt64(vnpay.GetResponseData("vnp_TxnRef"));
+            var transactionCode = vnpay.GetResponseData("vnp_TransactionNo");
             var vnp_SecureHash = collections["vnp_SecureHash"];
             var hashSecret = _configuration["Vnpay:HashSecret"];
 
@@ -121,7 +122,7 @@ namespace WebBanHang.Service.Services
             }
 
             // 2. Lấy đơn hàng từ DB
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == vnp_orderId);
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == vnp_orderId, includeProperties: "Payments");
             if (order == null)
             {
                 return ApiResponse<PaymentDto>.Failed("Không tìm thấy thông tin đơn hàng.");
@@ -130,8 +131,26 @@ namespace WebBanHang.Service.Services
             // 3. Kiểm tra mã phản hồi từ VNPay (00 = Thành công)
             if (vnpay.GetResponseData("vnp_ResponseCode") == "00")
             {
+                var existingPayment = order.Payments
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefault(x =>
+                        (!string.IsNullOrWhiteSpace(transactionCode) && x.TransactionCode == transactionCode) ||
+                        string.Equals(x.PaymentStatus, "Success", System.StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.PaymentStatus, WebBanHang.Model.Enums.PaymentStatus.Paid.ToString(), System.StringComparison.OrdinalIgnoreCase));
+
+                if (existingPayment != null)
+                {
+                    order.PaymentStatus = WebBanHang.Model.Enums.PaymentStatus.Paid.ToString();
+                    order.UpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.Order.Update(order);
+                    await _unitOfWork.SaveAsync();
+
+                    var existingDto = _mapper.Map<PaymentDto>(existingPayment);
+                    return ApiResponse<PaymentDto>.Succeeded(existingDto, "Giao dịch VNPay đã được xử lý trước đó.");
+                }
+
                 // Cập nhật trạng thái đơn hàng
-                order.PaymentStatus = "Paid";
+                order.PaymentStatus = WebBanHang.Model.Enums.PaymentStatus.Paid.ToString();
                 order.UpdatedAt = DateTime.UtcNow;
                 _unitOfWork.Order.Update(order);
 
@@ -140,7 +159,8 @@ namespace WebBanHang.Service.Services
                 {
                     OrderId = order.OrderId,
                     PaymentMethod = "VNPay",
-                    TransactionCode = vnpay.GetResponseData("vnp_TransactionNo"),
+                    PaymentProvider = "VNPay",
+                    TransactionCode = transactionCode,
                     Amount = order.TotalAmount,
                     PaymentStatus = "Success",
                     PaidAt = DateTime.UtcNow,

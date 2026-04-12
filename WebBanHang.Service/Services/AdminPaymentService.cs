@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using WebBanHang.Service.DTOs.Common;
+using WebBanHang.Service.Exceptions;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Payment;
 using WebBanHang.Service.IServices;
@@ -17,7 +17,7 @@ namespace WebBanHang.Service.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<ApiResponse<AdminPaymentListResponseDto>> GetPaymentsAsync(AdminPaymentQueryDto queryDto)
+        public async Task<AdminPaymentListResponseDto> GetPaymentsAsync(AdminPaymentQueryDto queryDto)
         {
             var page = queryDto.Page <= 0 ? 1 : queryDto.Page;
             var pageSize = queryDto.PageSize <= 0 ? 10 : queryDto.PageSize;
@@ -29,7 +29,7 @@ namespace WebBanHang.Service.Services
             {
                 if (!TryNormalizePaymentStatus(queryDto.Status, out var normalizedStatus))
                 {
-                    return ApiResponse<AdminPaymentListResponseDto>.Failed("Invalid payment status filter.", 400);
+                    throw new ApiException("Trạng thái thanh toán không hợp lệ.", 400);
                 }
 
                 query = query.Where(x => string.Equals(NormalizePaymentStatusLabel(x.PaymentStatus), normalizedStatus, StringComparison.OrdinalIgnoreCase));
@@ -39,7 +39,7 @@ namespace WebBanHang.Service.Services
             {
                 if (!TryNormalizePaymentMethod(queryDto.Method, out var normalizedMethod))
                 {
-                    return ApiResponse<AdminPaymentListResponseDto>.Failed("Invalid payment method filter.", 400);
+                    throw new ApiException("Phương thức thanh toán không hợp lệ.", 400);
                 }
 
                 query = query.Where(x => string.Equals(NormalizePaymentMethodLabel(x.PaymentMethod), normalizedMethod, StringComparison.OrdinalIgnoreCase));
@@ -62,13 +62,13 @@ namespace WebBanHang.Service.Services
                 })
                 .ToList();
 
-            return ApiResponse<AdminPaymentListResponseDto>.Succeeded(new AdminPaymentListResponseDto
+            return new AdminPaymentListResponseDto
             {
                 Items = items,
                 Total = total,
                 Page = page,
                 PageSize = pageSize
-            });
+            };
         }
 
         private static string NormalizePaymentMethodLabel(string? rawMethod)
