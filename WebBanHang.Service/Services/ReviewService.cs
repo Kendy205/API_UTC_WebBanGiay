@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using WebBanHang.Service.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
+using System.Reflection.Metadata.Ecma335;
 
 namespace WebBanHang.Service.Services
 {
@@ -60,6 +63,53 @@ namespace WebBanHang.Service.Services
                 _unitOfWork.Review.Remove(entity);
                 await _unitOfWork.SaveAsync();
             }
+        }
+
+        // New method to support admin UI: paging + optional rating filter.
+        public async Task<(IEnumerable<AdminReviewItemDto> Items, int Total)> GetAdminReviewsAsync(int page, int pageSize, int? rating)
+        {
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 10;
+
+            // Ensure related navigation properties are loaded from DB (OrderItem, User).
+            System.Linq.Expressions.Expression<Func<Review, bool>>? filter = null;
+            if (rating.HasValue)
+            {
+                filter = r => r.Rating == rating.Value;
+            }
+
+            // Load matching reviews including navigation properties
+            var allMatching = await _unitOfWork.Review.GetAllAsync(filter, "OrderItem,User");
+
+            var total = allMatching.Count();
+
+            var items = allMatching
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new AdminReviewItemDto
+                {
+                    Id = r.ReviewId,
+                    ProductName = r.OrderItem != null ? r.OrderItem.ProductNameSnapshot : string.Empty,
+                    CustomerName = r.User != null ? r.User.FullName : string.Empty,
+                    Rating = r.Rating,
+                    Comment = r.ReviewContent,
+                    CreatedAt = r.CreatedAt,
+                    IsVisible = r.IsPublic
+                })
+                .ToList();
+
+            return (items, total);
+        }
+
+        public async Task<bool> SetVisibilityAsync(long id, bool isVisible)
+        {
+            var entity = _unitOfWork.Review.GetFirstOrDefaultAsync(x => x.ReviewId == id).Result;
+            if (entity == null) return false;
+            entity.IsPublic = isVisible;
+            _unitOfWork.Review.Update(entity);
+            await _unitOfWork.SaveAsync();
+            return true;
         }
     }
 }

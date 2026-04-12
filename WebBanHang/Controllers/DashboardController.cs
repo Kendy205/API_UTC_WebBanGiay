@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 using WebBanHang.BLL.IServices;
-using WebBanHang.DTOs.Common;
+using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Dashboard;
 
 namespace WebBanHang.Controllers
