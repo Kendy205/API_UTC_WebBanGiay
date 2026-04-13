@@ -129,19 +129,26 @@ namespace WebBanHang.Controllers.ReviewController
                 ReviewContent = request.ReviewContent
             };
 
-            await _reviewService.AddAsync(dto);
+            try
+            {
+                await _reviewService.AddAsync(dto);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
 
             return CreatedAtAction(nameof(GetById), new { id = dto.ReviewId }, dto);
         }
 
-        //[HttpPut("{id:long}")]
-        //public async Task<IActionResult> Update(long id, [FromBody] ReviewDto dto)
-        //{
-        //    var existing = await _reviewService.GetByIdAsync(id);
-        //    if (existing == null) return NotFound();
-        //    await _reviewService.UpdateAsync(id, dto);
-        //    return NoContent();
-        //}
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> Update(long id, [FromBody] ReviewDto dto)
+        {
+            var existing = await _reviewService.GetByIdAsync(id);
+            if (existing == null) return NotFound();
+            await _reviewService.UpdateAsync(id, dto);
+            return NoContent();
+        }
 
 
         // Local request model to accept ProductId and VariantId in payload without changing existing DTO/entity.
