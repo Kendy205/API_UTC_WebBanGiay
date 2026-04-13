@@ -28,7 +28,7 @@ namespace WebBanHang.Service.Services
 
         public async Task<ApiResponse<IEnumerable<OrderDto>>> GetMyOrdersAsync(long currentUserId)
         {
-            var entities = await _unitOfWork.Order.GetAllAsync(x => x.UserId == currentUserId, includeProperties: "OrderItems");
+            var entities = await _unitOfWork.Order.GetAllAsync(x => x.UserId == currentUserId, includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color");
             return ApiResponse<IEnumerable<OrderDto>>.Succeeded(_mapper.Map<IEnumerable<OrderDto>>(entities), "Lấy danh sách đơn hàng thành công");
         }
 
@@ -36,7 +36,7 @@ namespace WebBanHang.Service.Services
         {
             var entity = await _unitOfWork.Order.GetFirstOrDefaultAsync(
                 x => x.OrderId == orderId && x.UserId == currentUserId, 
-                includeProperties: "OrderItems,ShippingAddress");
+                includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color");
 
             if (entity == null) return ApiResponse<OrderDto?>.Failed("Đơn hàng không tồn tại.", 404);
             return ApiResponse<OrderDto?>.Succeeded(_mapper.Map<OrderDto>(entity), "Lấy chi tiết đơn hàng thành công");
