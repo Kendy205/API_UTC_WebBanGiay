@@ -79,6 +79,7 @@ namespace WebBanHang.Service.Services
             var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
                 x => x.UserId == userId,
                 includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product");
+
             return _mapper.Map<CartDto>(entity);
         }
 
