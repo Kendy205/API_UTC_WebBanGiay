@@ -16,7 +16,7 @@ namespace WebBanHang.Service.DTOs.Order
 
     public class AdminOrderListResponseDto
     {
-        public List<AdminOrderListItemDto> Items { get; set; } = new();
+        public List<AdminOrderListItemDto> Data { get; set; } = new();
         public int Total { get; set; }
         public int Page { get; set; }
         public int PageSize { get; set; }
