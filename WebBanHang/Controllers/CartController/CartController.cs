@@ -30,7 +30,7 @@ public class CartController : ControllerBase
             return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
         }
 
-        var cart = await _cartService.GetActiveCartByUserIdAsync(userId);
+        var cart = await _cartService.GetCartByUserId(userId);
         if (cart == null)
         {
             return NotFound(ApiResponse<CartDto>.Failed("Giỏ hàng không tồn tại", 404));
@@ -48,7 +48,7 @@ public class CartController : ControllerBase
             return Unauthorized(ApiResponse<CartDto>.Failed("Vui lòng đăng nhập", 401));
         }
 
-        var cart = await _cartService.GetOrCreateCartForUserAsync(userId);
+        var cart = await _cartService.GetCartByUserId(userId);
         var variant = await _variantService.GetByIdAsync(item.VariantId);
         if (variant == null)
         {
@@ -58,7 +58,7 @@ public class CartController : ControllerBase
         try
         {
             await _cartItemService.AddProductToCartAsync(cart.CartId, item.VariantId, item.Quantity);
-            cart = await _cartService.GetOrCreateCartForUserAsync(userId);
+            cart = await _cartService.GetCartByUserId(userId);
             return Ok(ApiResponse<CartDto>.Succeeded(cart, "Cập nhật cart thành công"));
         }
         catch (InvalidOperationException e)
@@ -108,7 +108,7 @@ public class CartController : ControllerBase
             return Unauthorized(ApiResponse<CartDto>.Failed("Hết hạn,Vui lòng đăng nhập", 401));
         }
 
-        var cart = await _cartService.GetActiveCartByUserIdAsync(userId);
+        var cart = await _cartService.GetCartByUserId(userId);
         if (cart == null)
         {
             return NotFound(ApiResponse<CartDto>.Failed("Giỏ hàng không tồn tại", 404));
