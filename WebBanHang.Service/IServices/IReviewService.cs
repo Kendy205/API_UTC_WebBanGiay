@@ -11,5 +11,6 @@ namespace WebBanHang.Service.IServices
         Task AddAsync(ReviewDto dto);
         Task UpdateAsync(long id, ReviewDto dto);
         Task DeleteAsync(long id);
+        Task<IEnumerable<ReviewDto>> GetByProductIdAsync(long productId);
     }
 }

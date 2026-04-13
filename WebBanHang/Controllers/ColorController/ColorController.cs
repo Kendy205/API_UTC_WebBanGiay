@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Controllers.ColorController
 {
@@ -11,6 +11,7 @@ namespace WebBanHang.Controllers.ColorController
     public class ColorController : ControllerBase
     {
         private readonly IColorService _colorService;
+
         public ColorController(IColorService colorService) => _colorService = colorService;
 
         [HttpGet]
@@ -25,13 +26,15 @@ namespace WebBanHang.Controllers.ColorController
         {
             var result = await _colorService.GetByIdAsync(id);
             if (result == null)
+            {
                 return NotFound(ApiResponse<ColorDto>.Failed("Không tìm thấy màu sắc!", 404));
+            }
 
             return Ok(ApiResponse<ColorDto>.Succeeded(result, "Lấy màu sắc thành công!"));
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Create([FromBody] ColorDto dto)
         {
             await _colorService.AddAsync(dto);
@@ -39,24 +42,28 @@ namespace WebBanHang.Controllers.ColorController
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Update(int id, [FromBody] ColorDto dto)
         {
             var existing = await _colorService.GetByIdAsync(id);
             if (existing == null)
+            {
                 return NotFound(ApiResponse<string>.Failed("Màu sắc không tồn tại!", 404));
+            }
 
             await _colorService.UpdateAsync(id, dto);
             return Ok(ApiResponse<ColorDto>.Succeeded(dto, "Cập nhật màu sắc thành công!"));
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Delete(int id)
         {
             var existing = await _colorService.GetByIdAsync(id);
             if (existing == null)
+            {
                 return NotFound(ApiResponse<string>.Failed("Màu sắc không tồn tại!", 404));
+            }
 
             await _colorService.DeleteAsync(id);
             return Ok(ApiResponse<object>.Succeeded(null, "Xóa màu sắc thành công!"));

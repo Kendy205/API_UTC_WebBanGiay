@@ -9,6 +9,7 @@ namespace WebBanHang.Service.IServices
         Task<IEnumerable<InventoryMovementDto>> GetAllAsync();
         Task<InventoryMovementDto?> GetByIdAsync(long id);
         Task AddAsync(InventoryMovementDto dto);
+        Task AddRangeAsync(IEnumerable<InventoryMovementDto> dtos);
         Task UpdateAsync(long id, InventoryMovementDto dto);
         Task DeleteAsync(long id);
     }
