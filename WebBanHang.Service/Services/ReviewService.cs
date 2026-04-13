@@ -37,8 +37,16 @@ namespace WebBanHang.Service.Services
 
         public async Task AddAsync(ReviewDto dto)
         {
-            var entity = _mapper.Map<Review>(dto);
-            await _unitOfWork.Review.AddAsync(entity);
+            var existing = await _unitOfWork.Review.GetFirstOrDefaultAsync(x => x.ReviewId == dto.ReviewId);
+            if (existing != null)
+            {
+                throw new InvalidOperationException($"Review with ID {dto.ReviewId} already exists.");
+            }
+            else
+            {
+                var entity = _mapper.Map<Review>(dto);
+                await _unitOfWork.Review.AddAsync(entity);
+            }
             await _unitOfWork.SaveAsync();
         }
 

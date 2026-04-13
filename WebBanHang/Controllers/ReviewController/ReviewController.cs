@@ -20,12 +20,12 @@ namespace WebBanHang.Controllers.ReviewController
             _reviewService = reviewService;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetAll()
-        //{
-        //    var items = await _reviewService.GetAllAsync();
-        //    return Ok(items);
-        //}
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var items = await _reviewService.GetAllAsync();
+            return Ok(items);
+        }
 
         // Admin endpoint: GET /api/Admin/reviews?page=1&pageSize=10&rating=5
         [HttpGet("/api/Admin/reviews")]
@@ -74,13 +74,13 @@ namespace WebBanHang.Controllers.ReviewController
             public bool IsVisible { get; set; }
         }
 
-        //[HttpGet("{id}")]
-        //public async Task<IActionResult> GetById(long id)
-        //{
-        //    var item = await _reviewService.GetByIdAsync(id);
-        //    if (item == null) return NotFound();
-        //    return Ok(item);
-        //}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(long id)
+        {
+            var item = await _reviewService.GetByIdAsync(id);
+            if (item == null) return NotFound();
+            return Ok(item);
+        }
         // Admin: set visibility
         // PUT /api/Admin/reviews/{id}/visibility
 
@@ -96,43 +96,43 @@ namespace WebBanHang.Controllers.ReviewController
         //   "rating": "5",
         //   "ReviewContent":"dsfgsdfgdf"
         // }
-        //[HttpPost("rating")]
-        ////[Authorize] // keep or remove depending on whether you want anonymous reviews
-        //public async Task<IActionResult> CreateDetailedRating([FromBody] CreateReviewRequest request)
-        //{
-        //    if (request == null) return BadRequest();
-        //    if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        [HttpPost("rating")]
+        //[Authorize] // keep or remove depending on whether you want anonymous reviews
+        public async Task<IActionResult> CreateDetailedRating([FromBody] CreateReviewRequest request)
+        {
+            if (request == null) return BadRequest();
+            if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        //    // If JWT present, prefer authenticated user id
-        //    if (User?.Identity?.IsAuthenticated == true)
-        //    {
-        //        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
-        //        if (idClaim != null && long.TryParse(idClaim.Value, out var userIdFromToken))
-        //        {
-        //            request.UserId = userIdFromToken;
-        //        }
-        //    }
+            // If JWT present, prefer authenticated user id
+            if (User?.Identity?.IsAuthenticated == true)
+            {
+                var idClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+                if (idClaim != null && long.TryParse(idClaim.Value, out var userIdFromToken))
+                {
+                    request.UserId = userIdFromToken;
+                }
+            }
 
-        //    if (request.OrderItemId == null || request.OrderItemId <= 0)
-        //    {
-        //        ModelState.AddModelError(nameof(request.OrderItemId), "OrderItemId is required and must be > 0.");
-        //        return ValidationProblem(ModelState);
-        //    }
+            if (request.OrderItemId == null || request.OrderItemId <= 0)
+            {
+                ModelState.AddModelError(nameof(request.OrderItemId), "OrderItemId is required and must be > 0.");
+                return ValidationProblem(ModelState);
+            }
 
-        //    // Map request to ReviewDto (service will handle persistence)
-        //    var dto = new ReviewDto
-        //    {
-        //        OrderItemId = request.OrderItemId.Value,
-        //        UserId = request.UserId ?? 0, // if 0, service or DB constraints should validate
-        //        Rating = request.Rating,
-        //        ReviewTitle = request.ReviewTitle,
-        //        ReviewContent = request.ReviewContent
-        //    };
+            // Map request to ReviewDto (service will handle persistence)
+            var dto = new ReviewDto
+            {
+                OrderItemId = request.OrderItemId.Value,
+                UserId = request.UserId ?? 0, // if 0, service or DB constraints should validate
+                Rating = request.Rating,
+                ReviewTitle = request.ReviewTitle,
+                ReviewContent = request.ReviewContent
+            };
 
-        //    await _reviewService.AddAsync(dto);
+            await _reviewService.AddAsync(dto);
 
-        //    return CreatedAtAction(nameof(GetById), new { id = dto.ReviewId }, dto);
-        //}
+            return CreatedAtAction(nameof(GetById), new { id = dto.ReviewId }, dto);
+        }
 
         //[HttpPut("{id:long}")]
         //public async Task<IActionResult> Update(long id, [FromBody] ReviewDto dto)
@@ -145,26 +145,26 @@ namespace WebBanHang.Controllers.ReviewController
 
 
         // Local request model to accept ProductId and VariantId in payload without changing existing DTO/entity.
-        //public class CreateReviewRequest
-        //{
-        //    [Required]
-        //    public long? OrderItemId { get; set; }
+        public class CreateReviewRequest
+        {
+            [Required]
+            public long? OrderItemId { get; set; }
 
-        //    // Optional fields -- kept for client convenience
-        //    //public long? ProductId { get; set; }
-        //    //public long? VariantId { get; set; }
+            // Optional fields -- kept for client convenience
+            //public long? ProductId { get; set; }
+            //public long? VariantId { get; set; }
 
-        //    // Optional: client may pass userId; if JWT auth enabled the token value will override this
-        //    public long? UserId { get; set; }
+            // Optional: client may pass userId; if JWT auth enabled the token value will override this
+            public long? UserId { get; set; }
 
-        //    [Required]
-        //    [Range(1, 5)]
-        //    public short Rating { get; set; }
-        //    [MaxLength(255)] // Thêm Title theo đúng DB 
-        //    public string? ReviewTitle { get; set; }
+            [Required]
+            [Range(1, 5)]
+            public short Rating { get; set; }
+            [MaxLength(255)] // Thêm Title theo đúng DB 
+            public string? ReviewTitle { get; set; }
 
-        //    public string? ReviewContent { get; set; }
-        //}
+            public string? ReviewContent { get; set; }
+        }
 
 
     }
