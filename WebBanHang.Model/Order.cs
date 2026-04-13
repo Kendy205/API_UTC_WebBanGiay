@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+using WebBanHang.Model.Enums;
+
 namespace WebBanHang.Model
 {
     [Table("orders")]
@@ -25,7 +27,7 @@ namespace WebBanHang.Model
         /// <summary>pending | confirmed | packed | shipped | delivered | cancelled | refunded</summary>
         [MaxLength(30)]
         [Column("order_status")]
-        public string OrderStatus { get; set; } = "pending";
+        public string OrderStatus { get; set; } = Enums.OrderStatus.Pending.ToString();
 
         [Column("subtotal_amount", TypeName = "decimal(12,2)")]
         public decimal SubtotalAmount { get; set; }
@@ -42,7 +44,7 @@ namespace WebBanHang.Model
         /// <summary>unpaid | paid | failed | refunded</summary>
         [MaxLength(20)]
         [Column("payment_status")]
-        public string PaymentStatus { get; set; } = "unpaid";
+        public string PaymentStatus { get; set; } = Enums.PaymentStatus.Unpaid.ToString();
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

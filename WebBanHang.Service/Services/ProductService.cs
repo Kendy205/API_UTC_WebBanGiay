@@ -1,12 +1,13 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using WebBanHang.Service.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
-using Microsoft.AspNetCore.Http;
+using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Service.Services
 {
@@ -31,14 +32,14 @@ namespace WebBanHang.Service.Services
 
         public async Task<ProductDto?> GetByIdAsync(long id)
         {
-            // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.ProductId == id) vào nhé.
             var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id, "Category,Brand");
-            return _mapper.Map<ProductDto>(entity); // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
+            return _mapper.Map<ProductDto>(entity);
         }
 
         public async Task<ProductDto> AddAsync(ProductDto dto, IFormFile file)
         {
             var entity = _mapper.Map<Product>(dto);
+
             if (file != null)
             {
                 var result = await _photoService.AddPhotoAsync(file);
@@ -46,9 +47,11 @@ namespace WebBanHang.Service.Services
                 {
                     throw new Exception("Lỗi khi tải ảnh lên Cloudinary");
                 }
+
                 entity.Image = result.SecureUrl.ToString();
                 entity.ImagePublicId = result.PublicId;
             }
+
             await _unitOfWork.Product.AddAsync(entity);
             await _unitOfWork.SaveAsync();
             return _mapper.Map<ProductDto>(entity);
@@ -56,7 +59,6 @@ namespace WebBanHang.Service.Services
 
         public async Task UpdateAsync(long id, ProductDto dto)
         {
-            // TODO: Tìm entity cũ theo id, sau đó map đè dữ liệu
             var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
             if (entity != null)
             {
@@ -68,7 +70,6 @@ namespace WebBanHang.Service.Services
 
         public async Task DeleteAsync(long id)
         {
-            // TODO: Tìm entity cũ theo id, sau đó xóa
             var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
             if (entity != null)
             {
@@ -76,9 +77,9 @@ namespace WebBanHang.Service.Services
                 await _unitOfWork.SaveAsync();
             }
         }
+
         public async Task<IEnumerable<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId, long? brandId, decimal? minPrice, decimal? maxPrice, int pageNumber, int pageSize)
         {
-            // 1. Định nghĩa bộ lọc
             Expression<Func<Product, bool>> filter = x =>
                 x.IsActive &&
                 (string.IsNullOrEmpty(keyword) || x.ProductName.Contains(keyword)) &&
@@ -87,14 +88,11 @@ namespace WebBanHang.Service.Services
                 (!minPrice.HasValue || x.BasePrice >= minPrice) &&
                 (!maxPrice.HasValue || x.BasePrice <= maxPrice);
 
-            // 2. Gọi Repository với các tham số phân trang
-            // Theo hàm GetAllAsync của bạn: filter, includeProperties, pageSize, pageNumber
             var entities = await _unitOfWork.Product.GetAllAsync(
                 filter: filter,
                 includeProperties: "Category,Brand",
                 pageSize: pageSize,
-                pageNumber: pageNumber
-            );
+                pageNumber: pageNumber);
 
             return _mapper.Map<IEnumerable<ProductDto>>(entities);
         }

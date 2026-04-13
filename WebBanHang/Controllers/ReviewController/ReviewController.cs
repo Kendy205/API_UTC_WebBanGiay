@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.DTOs.Common;
 
 
 namespace WebBanHang.Controllers.ReviewController
@@ -99,6 +100,13 @@ namespace WebBanHang.Controllers.ReviewController
             if (existing == null) return NotFound();
             await _reviewService.DeleteAsync(id);
             return NoContent();
+        }
+        [HttpGet("product/{productId:long}")]
+        public async Task<IActionResult> GetReviewByProductId(long productId)
+        {
+            var reviews = await _reviewService.GetByProductIdAsync(productId);
+            if (reviews == null || !reviews.Any()) return NotFound(ApiResponse<string>.Failed("khong tim thay",404));
+            return Ok(ApiResponse<IEnumerable<ReviewDto>>.Succeeded(reviews));
         }
 
         // Local request model to accept ProductId and VariantId in payload without changing existing DTO/entity.

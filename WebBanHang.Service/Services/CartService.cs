@@ -1,10 +1,10 @@
-﻿using System;
-using System.Threading.Tasks;
 using AutoMapper;
-using WebBanHang.Service.IServices;
+using System;
+using System.Threading.Tasks;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Service.Services
 {
@@ -18,19 +18,24 @@ namespace WebBanHang.Service.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-         
+
         public async Task<CartDto?> GetByIdAsync(long id)
         {
             var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
                 x => x.CartId == id,
-                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
-            );
+                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product");
             return _mapper.Map<CartDto>(entity);
         }
+
+        
+
         public async Task<bool> UpdateStatusAsync(long cartId, string newStatus)
         {
             var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.CartId == cartId);
-            if (entity == null) return false;
+            if (entity == null)
+            {
+                return false;
+            }
 
             entity.Status = newStatus;
             entity.UpdatedAt = DateTime.UtcNow;
@@ -41,25 +46,15 @@ namespace WebBanHang.Service.Services
 
         public async Task<CartDto> GetCartByUserId(long userId)
         {
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == userId,
-                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product"
-                );
+            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
+                x => x.UserId == userId,
+                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product");
+
             return _mapper.Map<CartDto>(entity);
         }
 
-        public Task AddAsync(CartDto dto)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task UpdateAsync(long id, CartDto dto)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task DeleteAsync(long id)
-        {
-            throw new NotImplementedException();
-        }
+        public Task AddAsync(CartDto dto) => throw new NotImplementedException();
+        public Task UpdateAsync(long id, CartDto dto) => throw new NotImplementedException();
+        public Task DeleteAsync(long id) => throw new NotImplementedException();
     }
 }
