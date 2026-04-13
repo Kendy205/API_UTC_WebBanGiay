@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
-using WebBanHang.BLL.IServices;
+using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Common;
 
 namespace WebBanHang.Controllers

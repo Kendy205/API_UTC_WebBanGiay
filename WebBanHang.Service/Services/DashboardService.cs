@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WebBanHang.BLL.IServices;
+using WebBanHang.Service.IServices;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Dashboard;
 
-namespace WebBanHang.BLL.Services
+namespace WebBanHang.Service.Services
 {
     public class DashboardService : IDashboardService
     {

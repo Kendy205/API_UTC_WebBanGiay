@@ -14,7 +14,6 @@ namespace WebBanHang.Service.DTOs.Order
         // Nếu tạo địa chỉ mới ngay khi checkout, truyền đối tượng này
         public AddressDto? NewAddress { get; set; }
 
-        public string? Note { get; set; }
         public List<CartItemLocalDto> Items { get; set; } = new();
     }
 

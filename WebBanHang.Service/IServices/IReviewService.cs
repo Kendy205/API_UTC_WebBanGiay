@@ -17,5 +17,6 @@ namespace WebBanHang.Service.IServices
         Task<(IEnumerable<AdminReviewItemDto> Items, int Total)> GetAdminReviewsAsync(int page, int pageSize, int? rating);
 
         Task<bool> SetVisibilityAsync(long id, bool isVisible);
+        Task<IEnumerable<ReviewDto>> GetByProductIdAsync(long productId);
     }
 }

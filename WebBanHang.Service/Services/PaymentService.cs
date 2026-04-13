@@ -68,7 +68,7 @@ namespace WebBanHang.Service.Services
             }
         }
 
-        public string CreateVnPayPaymentUrl(OrderDto order, HttpContext context )
+        public string CreateVnPayPaymentUrl(OrderDto order, HttpContext context)
         {
             var tmnCode = _configuration["Vnpay:TmnCode"];
             var hashSecret = _configuration["Vnpay:HashSecret"];
@@ -117,7 +117,7 @@ namespace WebBanHang.Service.Services
             bool checkSignature = vnpay.ValidateSignature(vnp_SecureHash, hashSecret);
             if (!checkSignature)
             {
-                return  ApiResponse<PaymentDto>.Failed("Chữ ký bảo mật không hợp lệ!");
+                return ApiResponse<PaymentDto>.Failed("Chữ ký bảo mật không hợp lệ!");
             }
 
             // 2. Lấy đơn hàng từ DB
