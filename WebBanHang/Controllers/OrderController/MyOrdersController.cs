@@ -81,7 +81,14 @@ namespace WebBanHang.Controllers.OrderController
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userId = long.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
-
+            var order = await _myOrdersService.GetMyOrderByIdAsync(id, userId);
+            if(order.Success && order.Data != null)
+            {
+                if (order.Data.PaymentStatus == "Paid" || order.Data.PaymentStatus == "Success")
+                {
+                    return BadRequest(ApiResponse<string>.Failed("Không thể hủy đơn hàng đã thanh toán!", 400));
+                }
+            }
             var result = await _myOrdersService.CancelMyOrderAsync(id, userId);
             if (!result.Success)
             {

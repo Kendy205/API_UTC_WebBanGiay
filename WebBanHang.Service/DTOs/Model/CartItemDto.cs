@@ -7,6 +7,7 @@
         public long ProductId { get; set; }
         public long VariantId { get; set; } 
         public int Quantity { get; set; } 
+        public string? Image { get; set; } = null;
         public int StockQuantity { get; set; }
         public decimal UnitPrice { get; set; } 
         public DateTime CreatedAt { get; set; } 

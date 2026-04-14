@@ -41,24 +41,24 @@ namespace WebBanHang.Controllers.ProductController
 
         
 
-        [HttpPut("{id}")]
-        [Authorize(Roles = "ADMIN")]
-        public async Task<IActionResult> Update(long id, [FromBody] ProductDto dto)
-        {
-            if (id != dto.ProductId)
-            {
-                return BadRequest(ApiResponse<string>.Failed("ID sản phẩm không khớp!"));
-            }
+        //[HttpPut("{id}")]
+        //[Authorize(Roles = "ADMIN")]
+        //public async Task<IActionResult> Update(long id, [FromBody] ProductDto dto)
+        //{
+        //    if (id != dto.ProductId)
+        //    {
+        //        return BadRequest(ApiResponse<string>.Failed("ID sản phẩm không khớp!"));
+        //    }
 
-            var existing = await _productService.GetByIdAsync(id);
-            if (existing == null)
-            {
-                return NotFound(ApiResponse<string>.Failed("Sản phẩm không tồn tại!", 404));
-            }
+        //    var existing = await _productService.GetByIdAsync(id);
+        //    if (existing == null)
+        //    {
+        //        return NotFound(ApiResponse<string>.Failed("Sản phẩm không tồn tại!", 404));
+        //    }
 
-            await _productService.UpdateAsync(id, dto);
-            return Ok(ApiResponse<ProductDto>.Succeeded(dto, "Cập nhật sản phẩm thành công!"));
-        }
+        //    await _productService.UpdateAsync(id, dto);
+        //    return Ok(ApiResponse<ProductDto>.Succeeded(dto, "Cập nhật sản phẩm thành công!"));
+        //}
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "ADMIN")]

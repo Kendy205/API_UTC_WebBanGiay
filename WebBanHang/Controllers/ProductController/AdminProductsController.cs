@@ -52,12 +52,23 @@ namespace WebBanHang.Controllers.Admin
             }
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(long id, [FromBody] ProductAdminDto dto)
+        public async Task<IActionResult> Update(long id, [FromForm] ProductDto dto, IFormFile? file) // Thêm IFormFile
         {
-            await _service.UpdateAsync(id, dto);
+            if (id != dto.ProductId)
+            {
+                return BadRequest(ApiResponse<string>.Failed("ID sản phẩm không khớp!"));
+            }
 
-            return Ok(ApiResponse<string>
-                .Succeeded(null, "Cập nhật thành công!"));
+            var existing = await _service.GetProductByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(ApiResponse<string>.Failed("Sản phẩm không tồn tại!", 404));
+            }
+
+            // Truyền cả file vào hàm Update của Service
+            var result = await _service.UpdateAsync(id, dto, file);
+
+            return Ok(ApiResponse<ProductDto>.Succeeded(result, "Cập nhật sản phẩm thành công!"));
         }
 
         [HttpDelete("{id}")]

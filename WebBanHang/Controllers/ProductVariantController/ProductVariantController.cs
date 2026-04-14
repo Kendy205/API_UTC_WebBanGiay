@@ -34,6 +34,7 @@ namespace WebBanHang.Controllers.ProductVariantController
         }
 
         [HttpPost]
+       
         [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> Create([FromBody] ProductVariantDto dto)
         {
