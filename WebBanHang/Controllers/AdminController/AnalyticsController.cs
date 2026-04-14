@@ -47,11 +47,11 @@ namespace WebBanHang.Controllers.DashboardController.AdminController
         /// - endDate: 2024-12-31
         [HttpGet("orders/status-distribution")]
         public async Task<IActionResult> GetOrderStatusDistribution(
-            [FromQuery] int year)
+            [FromQuery] int year )
         {
             try
             {
-
+               
                 //  Gọi service
                 var result = await _dashboardService.GetOrderStatusDistributionAsync(year);
 
