@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,14 +8,19 @@ namespace WebBanHang.Service.IServices
     public interface IDashboardService
     {
 
-        Task<DashboardSummaryStatisticDto> GetSummaryStatisticsAsync();
+        Task<IEnumerable<SalesStatisticDto>> GetSalesStatisticsAsync(string groupBy, int year);
 
-        Task<IEnumerable<AnalyticsOrderStatusDto>> GetOrderStatusDistributionAsync(int year);
+        Task<SummaryStatisticDto> GetSummaryStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null);
+
+        Task<IEnumerable<OrderStatusDto>> GetOrderStatusDistributionAsync(DateTime? startDate = null, DateTime? endDate = null);
 
 
+        Task<DashboardHeaderSummaryDto> GetHeaderSummaryAsync();
 
         // Analytics endpoints
-        Task<AnalyticsOverviewDto> GetAnalyticsOverviewAsync(int year);
+        Task<AnalyticsOverviewDto> GetAnalyticsOverviewAsync();
+
+        Task<IEnumerable<RevenueChartDto>> GetRevenueChartAsync(DateTime from, DateTime to);
 
         Task<SalesReportDto> GetSalesReportAsync(DateTime from, DateTime to, string groupBy = "day");
     }

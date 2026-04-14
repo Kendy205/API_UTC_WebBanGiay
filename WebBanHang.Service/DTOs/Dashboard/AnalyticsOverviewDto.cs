@@ -7,6 +7,7 @@ namespace WebBanHang.Service.DTOs.Dashboard
         public int NewCustomers { get; set; }
         public decimal AvgOrderValue { get; set; }
         public List<RevenueByMonthDto> RevenueByMonth { get; set; } = new();
+        public Dictionary<string, int> OrdersByStatus { get; set; } = new();
     }
 
     public class RevenueByMonthDto

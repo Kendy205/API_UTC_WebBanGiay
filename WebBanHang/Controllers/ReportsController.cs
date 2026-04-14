@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Common;
 
-namespace WebBanHang.Controllers.AdminController
+namespace WebBanHang.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
