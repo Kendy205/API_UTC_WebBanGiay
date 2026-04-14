@@ -26,27 +26,27 @@ namespace WebBanHang.Service.Services
             _addressService = addressService;
         }
 
-        public async Task<ApiResponse<IEnumerable<OrderDto>>> GetMyOrdersAsync(long currentUserId)
+        public async Task<IEnumerable<OrderDto>> GetMyOrdersAsync(long currentUserId)
         {
             var entities = await _unitOfWork.Order.GetAllAsync(x => x.UserId == currentUserId, includeProperties: "OrderItems");
-            return ApiResponse<IEnumerable<OrderDto>>.Succeeded(_mapper.Map<IEnumerable<OrderDto>>(entities), "Lấy danh sách đơn hàng thành công");
+            return _mapper.Map<IEnumerable<OrderDto>>(entities);
         }
 
-        public async Task<ApiResponse<OrderDto?>> GetMyOrderByIdAsync(long orderId, long currentUserId)
+        public async Task<OrderDto?> GetMyOrderByIdAsync(long orderId, long currentUserId)
         {
             var entity = await _unitOfWork.Order.GetFirstOrDefaultAsync(
                 x => x.OrderId == orderId && x.UserId == currentUserId, 
                 includeProperties: "OrderItems,ShippingAddress");
 
-            if (entity == null) return ApiResponse<OrderDto?>.Failed("Đơn hàng không tồn tại.", 404);
-            return ApiResponse<OrderDto?>.Succeeded(_mapper.Map<OrderDto>(entity), "Lấy chi tiết đơn hàng thành công");
+            if (entity == null) return null;
+            return _mapper.Map<OrderDto>(entity);
         }
 
-        public async Task<ApiResponse<OrderDto>> CheckoutAsync(CheckoutDto checkoutDto, long currentUserId)
+        public async Task<OrderDto> CheckoutAsync(CheckoutDto checkoutDto, long currentUserId)
         {
             if (checkoutDto.Items == null || !checkoutDto.Items.Any())
             {
-                return ApiResponse<OrderDto>.Failed("Danh sách sản phẩm đặt hàng không hợp lệ.", 400);
+                throw new Exception("Danh sách sản phẩm đặt hàng không hợp lệ.");
             }
 
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
@@ -55,7 +55,7 @@ namespace WebBanHang.Service.Services
                 {
                     var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == currentUserId && x.Status == "active", includeProperties: "CartItems");
                     if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any()) 
-                        return ApiResponse<OrderDto>.Failed("Giỏ hàng trống.", 400);
+                        throw new Exception("Giỏ hàng trống.");
 
                     long finalAddressId = 0;
                     if (checkoutDto.NewAddress != null)
@@ -66,12 +66,12 @@ namespace WebBanHang.Service.Services
                         finalAddressId = addresses.OrderByDescending(a => a.AddressId).First().AddressId;
                     }
                     else if (checkoutDto.ShippingAddressId.HasValue) finalAddressId = checkoutDto.ShippingAddressId.Value;
-                    else return ApiResponse<OrderDto>.Failed("Thiếu địa chỉ.", 400);
+                    else throw new Exception("Thiếu địa chỉ.");
 
                     if (checkoutDto.ShippingAddressId.HasValue)
                     {
                         var address = await _unitOfWork.Address.GetFirstOrDefaultAsync(a => a.AddressId == finalAddressId && a.UserId == currentUserId);
-                        if (address == null) return ApiResponse<OrderDto>.Failed("Địa chỉ giao hàng không hợp lệ.", 400);
+                        if (address == null) throw new Exception("Địa chỉ giao hàng không hợp lệ.");
                     }
 
                     var order = new Order
@@ -92,10 +92,10 @@ namespace WebBanHang.Service.Services
                     foreach (var itemDto in checkoutDto.Items)
                     {
                         var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == itemDto.VariantId, includeProperties: "Product");
-                        if (variant == null) return ApiResponse<OrderDto>.Failed("Sản phẩm không tồn tại.", 404);
+                        if (variant == null) throw new Exception("Sản phẩm không tồn tại.");
                         
                         var decreased = await _unitOfWork.ProductVariant.TryDecreaseStockAsync(variant.VariantId, itemDto.Quantity);
-                        if (!decreased) return ApiResponse<OrderDto>.Failed($"Sản phẩm {variant.Product.ProductName} hết hàng.", 409);
+                        if (!decreased) throw new Exception($"Sản phẩm {variant.Product.ProductName} hết hàng.");
 
                         decimal price = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
                         order.OrderItems.Add(new OrderItem { 
@@ -126,18 +126,18 @@ namespace WebBanHang.Service.Services
                     await _unitOfWork.SaveAsync();
 
                     await transaction.CommitAsync();
-                    return ApiResponse<OrderDto>.Succeeded(_mapper.Map<OrderDto>(order), "Đặt hàng thành công", 201);
+                    return _mapper.Map<OrderDto>(order);
                 }
                 catch (Exception) { await transaction.RollbackAsync(); throw; }
             }
         }
 
-        public async Task<ApiResponse<bool>> CancelMyOrderAsync(long orderId, long currentUserId)
+        public async Task<bool> CancelMyOrderAsync(long orderId, long currentUserId)
         {
             var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId && o.UserId == currentUserId, includeProperties: "OrderItems");
-            if (order == null) return ApiResponse<bool>.Failed("Không thấy đơn hàng.", 404);
+            if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
 
-            if (order.OrderStatus == OrderStatus.Cancelled.ToString()) return ApiResponse<bool>.Failed("Đơn hàng đã hủy trước đó.", 400);
+            if (order.OrderStatus == OrderStatus.Cancelled.ToString()) throw new Exception("Đơn hàng đã hủy trước đó.");
 
             foreach (var item in order.OrderItems) 
             {
@@ -148,7 +148,7 @@ namespace WebBanHang.Service.Services
             order.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.Order.Update(order);
             await _unitOfWork.SaveAsync();
-            return ApiResponse<bool>.Succeeded(true, "Hủy đơn hàng thành công");
+            return true;
         }
     }
 }
