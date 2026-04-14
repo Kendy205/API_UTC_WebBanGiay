@@ -8,8 +8,8 @@ namespace WebBanHang.Service.IServices
     {
         Task<IEnumerable<UserDto>> GetAllAsync();
         Task<UserDto?> GetByIdAsync(long id);
-        Task AddAsync(UserDto dto);
-        Task UpdateAsync(long id, UserDto dto);
+        Task<string> AddAsync(UserResgiterDto dto);
+        Task UpdateAsync(long id, UserResgiterDto dto);
         Task DeleteAsync(long id);
     }
 }

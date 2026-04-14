@@ -9,7 +9,7 @@ namespace WebBanHang.Controllers.UserController
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "ADMIN")]
+    //[Authorize(Roles = "ADMIN")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -22,10 +22,10 @@ namespace WebBanHang.Controllers.UserController
         public async Task<IActionResult> GetAll()
         {
             var result = await _userService.GetAllAsync();
-            return Ok(result);
+            return Ok(ApiResponse<IEnumerable<UserDto>>.Succeeded(result));
         }
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] UserDto userCreateDto)
+        public async Task<IActionResult> Create([FromBody] UserResgiterDto userCreateDto)
         {
             try
             {
@@ -38,8 +38,12 @@ namespace WebBanHang.Controllers.UserController
             }
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(long id, [FromBody] UserDto userUpdateDto)
+        public async Task<IActionResult> Update(long id, [FromBody] UserResgiterDto userUpdateDto)
         {
+            if(id <= 0)
+            {
+                return BadRequest(ApiResponse<string>.Failed("ID không hợp lệ!", 400));
+            }
             try
             {
                 await _userService.UpdateAsync(id, userUpdateDto);

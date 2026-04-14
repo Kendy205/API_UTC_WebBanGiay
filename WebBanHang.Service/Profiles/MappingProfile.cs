@@ -76,6 +76,15 @@ namespace WebBanHang.Service.Profiles
 
             CreateMap<Cart, CartDto>()
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems));
+            //User & Role
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.RoleNames, opt => opt.MapFrom(src => string.Join(", ", src.UserRoles.Select(ur => ur.Role.RoleName))))
+                .ReverseMap();
+            CreateMap<UserRole, UserRoleDto>().ReverseMap();
+            CreateMap<Role, RoleDto>().ReverseMap();
+            CreateMap<UserResgiterDto, User>()
+                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }
