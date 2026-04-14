@@ -28,15 +28,15 @@ namespace WebBanHang.Service.Services
 
         public async Task<IEnumerable<OrderDto>> GetMyOrdersAsync(long currentUserId)
         {
-            var entities = await _unitOfWork.Order.GetAllAsync(x => x.UserId == currentUserId, includeProperties: "OrderItems");
+            var entities = await _unitOfWork.Order.GetAllAsync(x => x.UserId == currentUserId, includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color");
             return _mapper.Map<IEnumerable<OrderDto>>(entities);
         }
 
         public async Task<OrderDto?> GetMyOrderByIdAsync(long orderId, long currentUserId)
         {
             var entity = await _unitOfWork.Order.GetFirstOrDefaultAsync(
-                x => x.OrderId == orderId && x.UserId == currentUserId, 
-                includeProperties: "OrderItems,ShippingAddress");
+                x => x.OrderId == orderId && x.UserId == currentUserId,
+                includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color");
 
             if (entity == null) return null;
             return _mapper.Map<OrderDto>(entity);
@@ -54,7 +54,7 @@ namespace WebBanHang.Service.Services
                 try
                 {
                     var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == currentUserId && x.Status == "active", includeProperties: "CartItems");
-                    if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any()) 
+                    if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any())
                         throw new Exception("Giỏ hàng trống.");
 
                     long finalAddressId = 0;

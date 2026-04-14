@@ -8,5 +8,6 @@ namespace WebBanHang.Service.DTOs.Model
         public short Rating { get; set; }
         public string? ReviewContent { get; set; }
         public string? ReviewTitle { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

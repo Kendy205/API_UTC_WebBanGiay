@@ -10,8 +10,8 @@ namespace WebBanHang.Service.IServices
         Task UpdateAsync(long id, CartDto dto);
         Task DeleteAsync(long id);
         Task<CartDto> GetCartByUserId(long userId);
-        Task<CartDto> GetOrCreateCartForUserAsync(long userId);
-        Task<CartDto?> GetActiveCartByUserIdAsync(long userId);
+        //Task<CartDto> GetOrCreateCartForUserAsync(long userId);
+        //Task<CartDto?> GetActiveCartByUserIdAsync(long userId);
         Task<bool> UpdateStatusAsync(long cartId, string newStatus);
     }
 }

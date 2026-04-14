@@ -27,37 +27,7 @@ namespace WebBanHang.Service.Services
             return _mapper.Map<CartDto>(entity);
         }
 
-        public async Task<CartDto> GetOrCreateCartForUserAsync(long userId)
-        {
-            var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
-                x => x.UserId == userId && x.Status == "active",
-                includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product");
-
-            if (activeCart != null)
-            {
-                return _mapper.Map<CartDto>(activeCart);
-            }
-
-            var newCart = new Cart
-            {
-                UserId = userId,
-                Status = "active",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            await _unitOfWork.Cart.AddAsync(newCart);
-            await _unitOfWork.SaveAsync();
-            return _mapper.Map<CartDto>(newCart);
-        }
-
-        public async Task<CartDto?> GetActiveCartByUserIdAsync(long userId)
-        {
-            var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
-                x => x.UserId == userId && x.Status == "active",
-                includeProperties: "CartItems,CartItems.ProductVariant.Product,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color");
-            return _mapper.Map<CartDto>(entity);
-        }
+        
 
         public async Task<bool> UpdateStatusAsync(long cartId, string newStatus)
         {
@@ -79,6 +49,7 @@ namespace WebBanHang.Service.Services
             var entity = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
                 x => x.UserId == userId,
                 includeProperties: "CartItems,CartItems.ProductVariant,CartItems.ProductVariant.Size,CartItems.ProductVariant.Color,CartItems.ProductVariant.Product");
+
             return _mapper.Map<CartDto>(entity);
         }
 

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -19,9 +19,10 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// CẤU HÌNH KẾT NỐI DATABASE VỚI SQL SERVER
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+// ĐĂNG KÝ CÁC SERVICE VÀ REPOSITORY CHO DEPENDENCY INJECTION
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ICartService, CartService>();
@@ -42,11 +43,13 @@ builder.Services.AddScoped<ISizeService, SizeService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRoleService, UserRoleService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAdminProductService, AdminProductService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-builder.Services.AddAutoMapper(typeof(AuthService).Assembly);
-
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+// CẤU HÌNH AUTOMAPPER 
+builder.Services.AddAutoMapper(typeof(WebBanHang.Service.Services.AuthService).Assembly);
+//CẤU HÌNH JWT BẢO MẬT API 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -61,7 +64,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
-
+// CẤU HÌNH CORS CHO PHÉP TRUY CẬP TỪ MỌI NGUỒN
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -71,7 +74,7 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
-
+// CẤU HÌNH CLOUDINARY CHO LƯU TRỮ ẢNH
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 
 var app = builder.Build();
