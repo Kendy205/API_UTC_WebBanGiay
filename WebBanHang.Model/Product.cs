@@ -59,8 +59,7 @@ namespace WebBanHang.Model
 
         [ForeignKey(nameof(BrandId))]
         public Brand Brand { get; set; } = null!;
-
-       
+        public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
     }
 }
 

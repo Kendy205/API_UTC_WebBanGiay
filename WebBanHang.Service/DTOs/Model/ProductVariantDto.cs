@@ -2,8 +2,8 @@
     public class ProductVariantDto {
         public long VariantId { get; set; }
         public long ProductId { get; set; }
-        //public int SizeId { get; set; }
-        //public int ColorId { get; set; }
+        public int SizeId { get; set; }
+        public int ColorId { get; set; }
         public string Sku { get; set; } = string.Empty;
         public decimal? PriceOverride { get; set; }
         public int StockQuantity { get; set; }

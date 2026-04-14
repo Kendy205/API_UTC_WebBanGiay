@@ -141,6 +141,7 @@ namespace WebBanHang.Service.Services
             _unitOfWork.Review.Update(entity);
             await _unitOfWork.SaveAsync();
             return true;
+        }
         public async Task<IEnumerable<ReviewDto>> GetByProductIdAsync(long productId)
         {
             var entities = await _unitOfWork.Review.GetAllAsync(x => x.OrderItem.ProductVariant.ProductId == productId, "OrderItem,OrderItem.ProductVariant");

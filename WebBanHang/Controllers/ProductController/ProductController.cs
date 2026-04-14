@@ -39,20 +39,7 @@ namespace WebBanHang.Controllers.ProductController
             return Ok(ApiResponse<ProductDto>.Succeeded(product, "Lấy sản phẩm thành công!"));
         }
 
-        [HttpPost]
-        [Authorize(Roles = "ADMIN")]
-        public async Task<IActionResult> CreateProduct([FromForm] ProductDto dto, IFormFile file)
-        {
-            try
-            {
-                var result = await _productService.AddAsync(dto, file);
-                return Ok(ApiResponse<ProductDto>.Succeeded(result, "Thêm sản phẩm thành công!"));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ApiResponse<string>.Failed($"Lỗi: {ex.Message}"));
-            }
-        }
+        
 
         [HttpPut("{id}")]
         [Authorize(Roles = "ADMIN")]

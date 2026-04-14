@@ -12,7 +12,7 @@ namespace WebBanHang.Service.IServices
     {
         Task<PagedResult<ProductAdminDto>> GetProductsAsync(string? search, int page, int pageSize);
         //Task<ProductAdminDto> CreateAsync(ProductAdminDto dto, IFormFile file);
-        Task<ProductAdminDto> CreateAsync(ProductAdminDto dto);
+        Task<ProductDto> AddAsync(ProductDto dto, IFormFile file);
         Task UpdateAsync(long id, ProductAdminDto dto);
         Task DeleteAsync(long id);
     }

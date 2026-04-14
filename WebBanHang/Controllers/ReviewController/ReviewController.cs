@@ -98,7 +98,7 @@ namespace WebBanHang.Controllers.ReviewController
         //   "ReviewContent":"dsfgsdfgdf"
         // }
         [HttpPost("rating")]
-        //[Authorize] // keep or remove depending on whether you want anonymous reviews
+        [Authorize] // keep or remove depending on whether you want anonymous reviews
         public async Task<IActionResult> CreateDetailedRating([FromBody] CreateReviewRequest request)
         {
             if (request == null) return BadRequest();
@@ -151,14 +151,14 @@ namespace WebBanHang.Controllers.ReviewController
             return NoContent();
         }
 
-        [HttpDelete("{id:long}")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var existing = await _reviewService.GetByIdAsync(id);
-            if (existing == null) return NotFound();
-            await _reviewService.DeleteAsync(id);
-            return NoContent();
-        }
+        //[HttpDelete("{id:long}")]
+        //public async Task<IActionResult> Delete(long id)
+        //{
+        //    var existing = await _reviewService.GetByIdAsync(id);
+        //    if (existing == null) return NotFound();
+        //    await _reviewService.DeleteAsync(id);
+        //    return NoContent();
+        //}
         [HttpGet("product/{productId:long}")]
         public async Task<IActionResult> GetReviewByProductId(long productId)
         {
