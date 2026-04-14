@@ -13,6 +13,7 @@
         public string? ImageUrl { get; set; }
         public bool IsActive { get; set; }
         public int Sold { get; set; }
+        public IEnumerable<ProductVariantDto> ProductVariants { get; set; } 
     }
 
     public class PagedResult<T>

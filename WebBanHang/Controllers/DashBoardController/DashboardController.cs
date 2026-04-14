@@ -6,7 +6,7 @@ using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Dashboard;
 
-namespace WebBanHang.Controllers
+namespace WebBanHang.Controllers.DashBoardController
 {
     [Route("api/[controller]")]
     [ApiController]

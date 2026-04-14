@@ -93,20 +93,20 @@ namespace WebBanHang.Controllers.OrderController
             // 1. Kiểm tra xem đơn hàng có tồn tại và có thuộc về user đang đăng nhập không
             var orderResult = await _myOrdersService.GetMyOrderByIdAsync(orderId, long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"));
 
-            if (!orderResult.Success || orderResult.Data == null)
+            if ( orderResult  == null)
             {
                 return NotFound(orderResult); // Lỗi 404 nếu không tìm thấy
             }
 
             // 2. Chặn lại nếu đơn hàng đã được thanh toán rồi
-            if (orderResult.Data.PaymentStatus == "Paid" || orderResult.Data.PaymentStatus == "Success")
+            if (orderResult.PaymentStatus == "Paid" || orderResult.PaymentStatus == "Success")
             {
                 return BadRequest(new { success = false, message = "Đơn hàng này đã được thanh toán trước đó." });
             }
 
             // 3. Sinh link VNPay bằng PaymentService
             // Truyền OrderDto và HttpContext (để lấy IP người dùng) sang Service
-            string url = _paymentService.CreateVnPayPaymentUrl(orderResult.Data, HttpContext);
+            string url = _paymentService.CreateVnPayPaymentUrl(orderResult, HttpContext);
 
             // 4. Trả link về cho React
             //return Ok(new

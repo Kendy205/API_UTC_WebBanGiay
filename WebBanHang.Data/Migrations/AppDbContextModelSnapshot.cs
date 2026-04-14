@@ -966,7 +966,7 @@ namespace WebBanHang.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("WebBanHang.Model.Product", "Product")
-                        .WithMany()
+                        .WithMany("ProductVariants")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1063,6 +1063,11 @@ namespace WebBanHang.Data.Migrations
             modelBuilder.Entity("WebBanHang.Model.OrderItem", b =>
                 {
                     b.Navigation("Review");
+                });
+
+            modelBuilder.Entity("WebBanHang.Model.Product", b =>
+                {
+                    b.Navigation("ProductVariants");
                 });
 
             modelBuilder.Entity("WebBanHang.Model.ProductVariant", b =>

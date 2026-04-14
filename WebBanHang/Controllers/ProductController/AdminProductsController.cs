@@ -1,16 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using WebBanHang.Service.IServices;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.IServices;
+using WebBanHang.Service.Services;
 
 namespace WebBanHang.Controllers.Admin
 {
-    [Route("api/admin/products")]
+    [Route("api/Admin/products")]
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     public class AdminProductsController : ControllerBase
     {
         private readonly IAdminProductService _service;
+            //private readonly IProductService _productService;
 
         public AdminProductsController(IAdminProductService service)
         {
@@ -34,12 +37,19 @@ namespace WebBanHang.Controllers.Admin
         //    return Ok(ApiResponse<ProductAdminDto>
         //        .Succeeded(result, "Tạo sản phẩm thành công!"));
         //}
-        public async Task<IActionResult> Create([FromForm] ProductAdminDto dto)
+      
+        
+        public async Task<IActionResult> CreateProduct([FromForm] ProductDto dto, IFormFile file)
         {
-            var result = await _service.CreateAsync(dto);
-
-            return Ok(ApiResponse<ProductAdminDto>
-                .Succeeded(result, "Tạo sản phẩm thành công!"));
+            try
+            {
+                var result = await _service.AddAsync(dto, file);
+                return Ok(ApiResponse<ProductDto>.Succeeded(result, "Thêm sản phẩm thành công!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed($"Lỗi: {ex.Message}"));
+            }
         }
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, [FromBody] ProductAdminDto dto)
