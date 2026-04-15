@@ -55,7 +55,7 @@ namespace WebBanHang.Service.Services
                 {
                     var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == currentUserId && x.Status == "active", includeProperties: "CartItems");
                     if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any()) 
-                        return ApiResponse<OrderDto>.Failed("Giỏ hàng trống.", 400);
+                        return ApiResponse<OrderDto>.Failed("Giỏ hàng trống or đang bảo trì", 400);
 
                     long finalAddressId = 0;
                     if (checkoutDto.NewAddress != null)
@@ -83,7 +83,7 @@ namespace WebBanHang.Service.Services
                         PaymentStatus = PaymentStatus.Unpaid.ToString(),
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
-                        ShippingFee = 30000
+                        ShippingFee = checkoutDto.ShippingFee ?? 30000
                     };
 
                     decimal subtotal = 0;
