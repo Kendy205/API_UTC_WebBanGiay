@@ -30,7 +30,7 @@ namespace WebBanHang.Controllers.ReviewController
 
         // Admin endpoint: GET /api/Admin/reviews?page=1&pageSize=10&rating=5
         [HttpGet("/api/Admin/reviews")]
-        //[Authorize(Roles = "Admin")] can autho thi mo ra, khong auth thi cung duoc
+        [Authorize(Roles = "Admin")] 
         public async Task<IActionResult> GetAdminReviews([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? rating = null)
         {
             if (page <= 0) page = 1;
@@ -40,26 +40,26 @@ namespace WebBanHang.Controllers.ReviewController
 
             var response = new
             {
-                data = items,
+                reviews = items,
                 total = total
             };
 
             return Ok(response);
         }
 
-        [HttpPut("/api/Admin/reviews/{id}/visibility")]
-        //[Authorize(Roles = "Admin")] can autho thi mo ra, khong auth thi cung duoc
+        [HttpPut("/api/Admin/reviews/{id}/ispublic")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SetVisibility(long id, [FromBody] SetVisibilityRequest request)
         {
             if (request == null) return BadRequest();
-            var updated = await _reviewService.SetVisibilityAsync(id, request.IsVisible);
+            var updated = await _reviewService.SetVisibilityAsync(id, request.isPublic);
             if (!updated) return NotFound();
             return NoContent();
         }
 
 
         [HttpDelete("/api/Admin/reviews/{id}")]
-        //[Authorize(Roles = "Admin")] can autho thi mo ra, khong auth thi cung duoc
+        [Authorize(Roles = "Admin")] 
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _reviewService.GetByIdAsync(id);
@@ -68,12 +68,6 @@ namespace WebBanHang.Controllers.ReviewController
             return NoContent();
         }
 
-
-        // Request model for visibility toggle
-        public class SetVisibilityRequest
-        {
-            public bool IsVisible { get; set; }
-        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
@@ -188,7 +182,11 @@ namespace WebBanHang.Controllers.ReviewController
 
             public string? ReviewContent { get; set; }
         }
-
+        // Request model for visibility toggle
+        public class SetVisibilityRequest
+        {
+            public bool isPublic { get; set; }
+        }
 
     }
 }

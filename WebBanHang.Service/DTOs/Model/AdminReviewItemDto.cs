@@ -24,7 +24,7 @@ namespace WebBanHang.Service.DTOs.Model
         [JsonPropertyName("createdAt")]
         public DateTime CreatedAt { get; set; }
 
-        [JsonPropertyName("isVisible")]
-        public bool IsVisible { get; set; }
+        [JsonPropertyName("isPublic")]
+        public bool isPublic { get; set; }
     }
 }

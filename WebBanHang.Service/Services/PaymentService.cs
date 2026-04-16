@@ -90,6 +90,7 @@ namespace WebBanHang.Service.Services
             vnpay.AddRequestData("vnp_OrderType", "other");
             vnpay.AddRequestData("vnp_ReturnUrl", returnUrl);
             vnpay.AddRequestData("vnp_TxnRef", order.OrderId.ToString());
+          //  vnpay.AddRequestData("vnp_IpnUrl",_configuration["Vnpay:IpnUrl"]!);
             //vnpay.AddRequestData("vnp_Amount", (order.TotalAmount * 100).ToString("0"));
             //vnpay.AddRequestData("vnp_OrderInfo", "Thanh toan don hang " + order.OrderCode);
             //vnpay.AddRequestData("vnp_TxnRef", order.OrderId.ToString());

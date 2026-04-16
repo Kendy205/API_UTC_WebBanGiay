@@ -53,7 +53,7 @@ namespace WebBanHang.Service.Services
                                  Status = o.OrderStatus, 
                                  CreatedAt = o.CreatedAt,
                                  ItemCount = o.OrderItems.Count,
-                                 PaymentMethod = NormalizePaymentMethod(o.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMethod)
+                                 PaymentMethod = NormalizePaymentMethod(o.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMethod),
                              }).ToList();
 
             return ApiResponse<AdminOrderListResponseDto>.Succeeded(
@@ -204,7 +204,7 @@ namespace WebBanHang.Service.Services
                 "bank_transfer" => "Banking",
                 "banking" => "Banking",
                 "vnpay" => "Banking",
-                _ => method
+                _ => "Thanh toán khi nhận hàng"
             };
         }
 

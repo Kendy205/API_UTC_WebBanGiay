@@ -126,18 +126,18 @@ namespace WebBanHang.Service.Services
                     Rating = r.Rating,
                     Comment = r.ReviewContent,
                     CreatedAt = r.CreatedAt,
-                    IsVisible = r.IsPublic
+                    isPublic = r.IsPublic
                 })
                 .ToList();
 
             return (items, total);
         }
 
-        public async Task<bool> SetVisibilityAsync(long id, bool isVisible)
+        public async Task<bool> SetVisibilityAsync(long id, bool isPublic)
         {
             var entity = await _unitOfWork.Review.GetFirstOrDefaultAsync(x => x.ReviewId == id);
             if (entity == null) return false;
-            entity.IsPublic = isVisible;
+            entity.IsPublic = isPublic;
             _unitOfWork.Review.Update(entity);
             await _unitOfWork.SaveAsync();
             return true;

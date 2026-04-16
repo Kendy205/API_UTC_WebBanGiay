@@ -10,7 +10,7 @@ namespace WebBanHang.Controllers.OrderController
 {
     [Route("api/Admin/Orders")]
     [ApiController]
-    [Authorize(Roles = "ADMIN")]
+   // [Authorize(Roles = "ADMIN")]
     public class AdminOrdersController : ControllerBase
     {
         private readonly IAdminOrdersService _adminOrdersService;
