@@ -17,11 +17,13 @@ namespace WebBanHang.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public AdminOrdersService(IUnitOfWork unitOfWork, IMapper mapper)
+        public AdminOrdersService(IUnitOfWork unitOfWork, IMapper mapper, IInventoryMovementService inventoryMovementService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _inventoryMovementService = inventoryMovementService;
         }
 
         public async Task<AdminOrderListResponseDto> GetOrdersAsync(AdminOrderQueryDto queryDto)
@@ -82,27 +84,50 @@ namespace WebBanHang.Service.Services
 
         public async Task<AdminOrderStatusResultDto> UpdateOrderStatusAsync(long id, string status)
         {
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == id, includeProperties: "OrderItems");
-            if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
-
-            if (status.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                if (order.OrderStatus.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    throw new Exception("Đơn hàng đã hủy trước đó.");
+                    var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == id, includeProperties: "OrderItems");
+                    if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
+
+                    if (status.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (order.OrderStatus.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new Exception("Đơn hàng đã hủy trước đó.");
+                        }
+
+                        var movements = new List<InventoryMovementDto>();
+                        foreach (var item in order.OrderItems) 
+                        {
+                            await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+                            movements.Add(new InventoryMovementDto
+                            {
+                                VariantId = item.VariantId,
+                                MovementType = InventoryMovementType.IN.ToString(),
+                                Quantity = item.Quantity,
+                                ReferenceType = "order_cancel",
+                                ReferenceId = order.OrderId,
+                                Note = $"Order cancelled by Admin: {order.OrderCode}",
+                                CreatedBy = order.UserId // Tạm thời dùng UserId của chủ đơn vì không có context adminId ở đây
+                            });
+                        }
+                        await _inventoryMovementService.AddRangeAsync(movements);
+                        order.OrderStatus = OrderStatus.Cancelled.ToString();
+                    }
+                    else
+                    {
+                        order.OrderStatus = status;
+                    }
+
+                    _unitOfWork.Order.Update(order);
+                    await _unitOfWork.SaveAsync();
+                    await transaction.CommitAsync();
+                    return new AdminOrderStatusResultDto { Id = id, Status = order.OrderStatus };
                 }
-
-                foreach (var item in order.OrderItems) await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
-                order.OrderStatus = OrderStatus.Cancelled.ToString();
+                catch (Exception) { await transaction.RollbackAsync(); throw; }
             }
-            else
-            {
-                order.OrderStatus = status;
-            }
-
-            _unitOfWork.Order.Update(order);
-            await _unitOfWork.SaveAsync();
-            return new AdminOrderStatusResultDto { Id = id, Status = order.OrderStatus };
         }
 
         public async Task<OrderDto> UpdateOrderAsync(long orderId, OrderUpdateDto updateDto)
@@ -169,6 +194,7 @@ namespace WebBanHang.Service.Services
                     };
 
                     decimal subtotal = 0;
+                    var movements = new List<InventoryMovementDto>();
                     foreach (var item in checkoutDto.Items)
                     {
                         var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == item.VariantId, includeProperties: "Product");
@@ -179,6 +205,16 @@ namespace WebBanHang.Service.Services
                         decimal price = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
                         order.OrderItems.Add(new OrderItem { VariantId = variant.VariantId, ProductNameSnapshot = variant.Product.ProductName, UnitPrice = price, Quantity = item.Quantity, LineTotal = price * item.Quantity });
                         subtotal += price * item.Quantity;
+
+                        movements.Add(new InventoryMovementDto
+                        {
+                            VariantId = variant.VariantId,
+                            MovementType = InventoryMovementType.OUT.ToString(),
+                            Quantity = item.Quantity,
+                            ReferenceType = "order",
+                            Note = $"Admin created order: {order.OrderCode}",
+                            CreatedBy = customerId // Tạm thời dùng customerId
+                        });
                     }
 
                     order.SubtotalAmount = subtotal;
@@ -186,6 +222,13 @@ namespace WebBanHang.Service.Services
 
                     await _unitOfWork.Order.AddAsync(order);
                     await _unitOfWork.SaveAsync();
+
+                    foreach (var m in movements)
+                    {
+                        m.ReferenceId = order.OrderId;
+                    }
+                    await _inventoryMovementService.AddRangeAsync(movements);
+
                     await transaction.CommitAsync();
                     return _mapper.Map<OrderDto>(order);
                 }

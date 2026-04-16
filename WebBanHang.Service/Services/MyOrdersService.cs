@@ -18,12 +18,14 @@ namespace WebBanHang.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IAddressService _addressService;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public MyOrdersService(IUnitOfWork unitOfWork, IMapper mapper, IAddressService addressService)
+        public MyOrdersService(IUnitOfWork unitOfWork, IMapper mapper, IAddressService addressService, IInventoryMovementService inventoryMovementService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _addressService = addressService;
+            _inventoryMovementService = inventoryMovementService;
         }
 
         public async Task<IEnumerable<OrderDto>> GetMyOrdersAsync(long currentUserId)
@@ -88,6 +90,7 @@ namespace WebBanHang.Service.Services
 
                     decimal subtotal = 0;
                     var requestedIds = checkoutDto.Items.Select(item => item.VariantId).ToList();
+                    var movements = new List<InventoryMovementDto>();
 
                     foreach (var itemDto in checkoutDto.Items)
                     {
@@ -106,6 +109,16 @@ namespace WebBanHang.Service.Services
                             LineTotal = price * itemDto.Quantity 
                         });
                         subtotal += price * itemDto.Quantity;
+
+                        movements.Add(new InventoryMovementDto
+                        {
+                            VariantId = variant.VariantId,
+                            MovementType = InventoryMovementType.OUT.ToString(),
+                            Quantity = itemDto.Quantity,
+                            ReferenceType = "order",
+                            Note = $"Order checkout: {order.OrderCode}",
+                            CreatedBy = currentUserId
+                        });
                     }
 
                     order.SubtotalAmount = subtotal;
@@ -114,13 +127,20 @@ namespace WebBanHang.Service.Services
                     await _unitOfWork.Order.AddAsync(order);
                     await _unitOfWork.SaveAsync();
 
+                    // Cập nhật ReferenceId cho các movement
+                    foreach (var m in movements)
+                    {
+                        m.ReferenceId = order.OrderId;
+                    }
+                    await _inventoryMovementService.AddRangeAsync(movements);
+
                     // CẬP NHẬT GIỎ HÀNG: Xóa các item đã mua
                     var purchasedCartItems = activeCart.CartItems.Where(ci => requestedIds.Contains(ci.VariantId)).ToList();
                     foreach (var pi in purchasedCartItems)
                     {
                         _unitOfWork.CartItem.Remove(pi);
                     }
-                    // Project currently only uses "active" status for cart.
+                    // Project only uses "active" cart status currently.
                     activeCart.Status = "active";
                     activeCart.UpdatedAt = DateTime.UtcNow;
                     _unitOfWork.Cart.Update(activeCart);
@@ -135,21 +155,43 @@ namespace WebBanHang.Service.Services
 
         public async Task<bool> CancelMyOrderAsync(long orderId, long currentUserId)
         {
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId && o.UserId == currentUserId, includeProperties: "OrderItems");
-            if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
-
-            if (order.OrderStatus == OrderStatus.Cancelled.ToString()) throw new Exception("Đơn hàng đã hủy trước đó.");
-
-            foreach (var item in order.OrderItems) 
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+                try
+                {
+                    var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId && o.UserId == currentUserId, includeProperties: "OrderItems");
+                    if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
+
+                    if (order.OrderStatus == OrderStatus.Cancelled.ToString()) throw new Exception("Đơn hàng đã hủy trước đó.");
+
+                    var movements = new List<InventoryMovementDto>();
+                    foreach (var item in order.OrderItems) 
+                    {
+                        await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+                        movements.Add(new InventoryMovementDto
+                        {
+                            VariantId = item.VariantId,
+                            MovementType = InventoryMovementType.IN.ToString(),
+                            Quantity = item.Quantity,
+                            ReferenceType = "order_cancel",
+                            ReferenceId = order.OrderId,
+                            Note = $"Order cancelled by user: {order.OrderCode}",
+                            CreatedBy = currentUserId
+                        });
+                    }
+                    
+                    await _inventoryMovementService.AddRangeAsync(movements);
+
+                    order.OrderStatus = OrderStatus.Cancelled.ToString();
+                    order.UpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.Order.Update(order);
+                    await _unitOfWork.SaveAsync();
+
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception) { await transaction.RollbackAsync(); throw; }
             }
-            
-            order.OrderStatus = OrderStatus.Cancelled.ToString();
-            order.UpdatedAt = DateTime.UtcNow;
-            _unitOfWork.Order.Update(order);
-            await _unitOfWork.SaveAsync();
-            return true;
         }
     }
 }
