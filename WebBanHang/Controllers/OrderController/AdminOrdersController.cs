@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
@@ -23,67 +24,69 @@ namespace WebBanHang.Controllers.OrderController
         [HttpGet]
         public async Task<IActionResult> GetOrders([FromQuery] AdminOrderQueryDto queryDto)
         {
-            var result = await _adminOrdersService.GetOrdersAsync(queryDto);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                var result = await _adminOrdersService.GetOrdersAsync(queryDto);
+                return Ok(ApiResponse<AdminOrderListResponseDto>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
 
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
         {
             var result = await _adminOrdersService.GetOrderDetailAsync(id);
-            if (!result.Success)
+            if (result == null)
             {
-                return result.StatusCode == 404 
-                    ? NotFound(result)
-                    : BadRequest(result);
+                return NotFound(ApiResponse<AdminOrderDetailDto>.Failed("Không tìm thấy đơn hàng.", 404));
             }
-            return Ok(result);
+            return Ok(ApiResponse<AdminOrderDetailDto>.Succeeded(result, "Lấy chi tiết đơn hàng thành công"));
         }
 
         [HttpPut("{id:long}/status")]
         public async Task<IActionResult> UpdateStatus(long id, [FromBody] AdminUpdateOrderStatusDto dto)
         {
-            var result = await _adminOrdersService.UpdateOrderStatusAsync(id, dto.Status);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                var result = await _adminOrdersService.UpdateOrderStatusAsync(id, dto.Status);
+                return Ok(ApiResponse<AdminOrderStatusResultDto>.Succeeded(result, "Cập nhật trạng thái đơn hàng thành công"));
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
 
 
         [HttpPut("{id:long}")]
         public async Task<IActionResult> Update(long id, [FromBody] OrderUpdateDto dto)
         {
-            var result = await _adminOrdersService.UpdateOrderAsync(id, dto);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                var result = await _adminOrdersService.UpdateOrderAsync(id, dto);
+                return Ok(ApiResponse<OrderDto>.Succeeded(result, "Cập nhật thông tin đơn hàng thành công"));
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
 
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id)
         {
-            var result = await _adminOrdersService.DeleteOrderAsync(id);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                var result = await _adminOrdersService.DeleteOrderAsync(id);
+                return Ok(ApiResponse<bool>.Succeeded(result, "Xóa đơn hàng thành công"));
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
 
         [HttpPost]
@@ -94,14 +97,15 @@ namespace WebBanHang.Controllers.OrderController
                 return BadRequest(ApiResponse<OrderDto>.Failed("Vui lòng cung cấp ID khách hàng.", 400));
             }
 
-            var result = await _adminOrdersService.CreateOrderAsync(dto, dto.UserId.Value);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                var result = await _adminOrdersService.CreateOrderAsync(dto, dto.UserId.Value);
+                return Ok(ApiResponse<OrderDto>.Succeeded(result, "Tạo đơn hàng mới thành công", 201));
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
     }
 }
