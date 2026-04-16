@@ -46,6 +46,8 @@ namespace WebBanHang.Model
 
         [Column("is_default")]
         public bool IsDefault { get; set; } = false;
+        [Column("is_deleted")]
+        public bool IsDelete { get; set; } = false;
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

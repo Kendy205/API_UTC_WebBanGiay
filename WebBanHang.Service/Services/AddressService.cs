@@ -28,7 +28,7 @@ namespace WebBanHang.Service.Services
         public async Task<AddressDto?> GetByIdAsync(long id)
         {
             // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.AddressId == id) vào nhé.
-            var entity = await _unitOfWork.Address.GetFirstOrDefaultAsync(x => x.AddressId == id);
+            var entity = await _unitOfWork.Address.GetFirstOrDefaultAsync(x => x.AddressId == id && x.IsDelete == false);
             return _mapper.Map<AddressDto>(entity);
         }
 
@@ -51,20 +51,24 @@ namespace WebBanHang.Service.Services
             }
         }
 
-        public async Task DeleteAsync(long id)
+        public async Task DeleteAsync(long id,long userId)
         {
             // TODO: Tìm entity cũ theo id, sau đó xóa
-            var entity = await _unitOfWork.Address.GetFirstOrDefaultAsync(x => x.AddressId == id);
+            var entity = await _unitOfWork.Address.GetFirstOrDefaultAsync(x => x.AddressId == id && x.UserId == userId);
             if (entity != null)
             {
                 _unitOfWork.Address.Remove(entity);
                 await _unitOfWork.SaveAsync();
             }
+            else            {
+                // Có thể ném exception hoặc trả về lỗi tùy theo cách bạn muốn xử lý
+                throw new KeyNotFoundException($"Address with id {id} not found for user {userId}.");
+            }
         }
 
         public async Task<IEnumerable<AddressDto>> GetByUserIdAsync(long userId)
         {
-            var entity = await _unitOfWork.Address.GetAllAsync(x => x.UserId == userId);
+            var entity = await _unitOfWork.Address.GetAllAsync(x => x.UserId == userId && x.IsDelete == false);
             return _mapper.Map<IEnumerable<AddressDto>>(entity);
         }
     }

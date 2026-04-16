@@ -4,6 +4,7 @@ namespace WebBanHang.Service.DTOs.Model
     {
         public long ReviewId { get; set; }
         public long UserId { get; set; }
+        public string UserName { get; set; }
         public long OrderItemId { get; set; }
         public short Rating { get; set; }
         public string? ReviewContent { get; set; }

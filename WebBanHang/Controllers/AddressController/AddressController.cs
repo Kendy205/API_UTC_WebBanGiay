@@ -28,20 +28,58 @@ namespace WebBanHang.Controllers.AddressController
         [HttpPost]
         public async Task<IActionResult> CreateAddress(AddressDto addressDto)
         {
-            long userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null!);
-            if (userId == null)
+            try
             {
-                return BadRequest(ApiResponse<AddressDto>.Failed("User ID không hợp lệ."));
+                long userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null!);
+                if (userId == null)
+                {
+                    return BadRequest(ApiResponse<AddressDto>.Failed("User ID không hợp lệ."));
+                }
+                addressDto.UserId = userId;
+                await addressService.AddAsync(addressDto);
+                return Ok(ApiResponse<AddressDto>.Succeeded(null!, "Thêm địa chỉ thành công!", 201));
             }
-            addressDto.UserId = userId;
-            await addressService.AddAsync(addressDto);
-            return Ok(ApiResponse<AddressDto>.Succeeded(null!, "Thêm địa chỉ thành công!", 201));
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<AddressDto>.Failed($"Lỗi server: {ex.Message}"));
+            }
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAddress(long id)
         {
-            await addressService.DeleteAsync(id);
-            return Ok(ApiResponse<AddressDto>.Succeeded(null!, "Xóa địa chỉ thành công!"));
+            try
+            {
+                long userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null!);
+                if (userId == null)
+                {
+                    return BadRequest(ApiResponse<AddressDto>.Failed("User ID không hợp lệ."));
+                }
+                await addressService.DeleteAsync(id, userId);
+                return Ok(ApiResponse<AddressDto>.Succeeded(null!, "Xóa địa chỉ thành công!"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<AddressDto>.Failed($"Lỗi server: {ex.Message}"));
+            }
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateAddress(long id, AddressDto addressDto)
+        {
+            try
+            {
+                long userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? null!);
+                if (userId == null)
+                {
+                    return BadRequest(ApiResponse<AddressDto>.Failed("User ID không hợp lệ."));
+                }
+                addressDto.UserId = userId;
+                await addressService.UpdateAsync(id, addressDto);
+                return Ok(ApiResponse<AddressDto>.Succeeded(null!, "Cập nhật địa chỉ thành công!"));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<AddressDto>.Failed($"Lỗi server: {ex.Message}"));
+            }
         }
     }
 }

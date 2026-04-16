@@ -57,7 +57,7 @@ namespace WebBanHang.Service.Services
                 {
                     var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == currentUserId && x.Status == "active", includeProperties: "CartItems");
                     if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any())
-                        throw new Exception("Giỏ hàng trống.");
+                        throw new Exception("Giỏ hàng trống or đang bảo trì");
 
                     long finalAddressId = 0;
                     if (checkoutDto.NewAddress != null)

@@ -9,5 +9,7 @@ namespace WebBanHang.Service.DTOs.Model {
         public string? Ward { get; set; }
         public string? StreetAddress { get; set; }
         public bool IsDefault { get; set; }
+        public bool IsDelete { get; set; } = false;
+
     }
 }

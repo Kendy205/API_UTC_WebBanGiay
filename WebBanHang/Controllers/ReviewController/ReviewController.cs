@@ -156,6 +156,7 @@ namespace WebBanHang.Controllers.ReviewController
         [HttpGet("product/{productId:long}")]
         public async Task<IActionResult> GetReviewByProductId(long productId)
         {
+            
             var reviews = await _reviewService.GetByProductIdAsync(productId);
             if (reviews == null || !reviews.Any()) return NotFound(ApiResponse<string>.Failed("khong tim thay",404));
             return Ok(ApiResponse<IEnumerable<ReviewDto>>.Succeeded(reviews));

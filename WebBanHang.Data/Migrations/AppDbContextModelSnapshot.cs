@@ -44,6 +44,10 @@ namespace WebBanHang.Data.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_default");
 
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_deleted");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")

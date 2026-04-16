@@ -45,7 +45,10 @@ namespace WebBanHang.Service.Profiles
             CreateMap<Address, AddressDto>();
             CreateMap<Address, AddressDto>().ReverseMap();
             //
-            CreateMap<Review, ReviewDto>();
+            CreateMap<Review, ReviewDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.FullName));
+                
+
             CreateMap<ReviewDto, Review>()
                 //.ForMember(dest => dest.ReviewId, opt => opt.Ignore())
                 //.ForMember(dest => dest.User, opt => opt.Ignore())
@@ -57,7 +60,9 @@ namespace WebBanHang.Service.Profiles
                 .ForMember(dest => dest.SizeLabelSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Size.SizeLabel))
                 .ForMember(dest => dest.ColorNameSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
                 .ForMember(dest => dest.SkuSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Sku))
+                .ForMember(dest =>dest.imageUrlSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Product.Image))
                 .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductVariant.ProductId));
+                
 
             //
             CreateMap<Category, CategoryDto>().ReverseMap();
