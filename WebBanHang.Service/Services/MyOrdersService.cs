@@ -83,7 +83,7 @@ namespace WebBanHang.Service.Services
                         PaymentStatus = PaymentStatus.Unpaid.ToString(),
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
-                        ShippingFee = 30000
+                        ShippingFee = checkoutDto.ShippingFee ?? 30000
                     };
 
                     decimal subtotal = 0;
@@ -120,7 +120,8 @@ namespace WebBanHang.Service.Services
                     {
                         _unitOfWork.CartItem.Remove(pi);
                     }
-                    activeCart.Status = activeCart.CartItems.Count == purchasedCartItems.Count ? "converted" : "active";
+                    // Project currently only uses "active" status for cart.
+                    activeCart.Status = "active";
                     activeCart.UpdatedAt = DateTime.UtcNow;
                     _unitOfWork.Cart.Update(activeCart);
                     await _unitOfWork.SaveAsync();

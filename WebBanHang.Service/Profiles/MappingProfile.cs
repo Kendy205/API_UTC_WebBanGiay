@@ -14,9 +14,9 @@ namespace WebBanHang.Service.Profiles
                 .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand.BrandName));
 
             CreateMap<ProductDto, Product>()
-                .ForMember(dest => dest.ProductId, opt => opt.Ignore())
-                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
-                .ForMember(dest => dest.BrandId, opt => opt.Ignore())
+                //.ForMember(dest => dest.ProductId, opt => opt.Ignore())
+                //.ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                //.ForMember(dest => dest.BrandId, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<ProductVariant, ProductVariantDto>()
@@ -26,10 +26,10 @@ namespace WebBanHang.Service.Profiles
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.ProductName));
 
             CreateMap<ProductVariantDto, ProductVariant>()
-                .ForMember(dest => dest.VariantId, opt => opt.Ignore())
-                .ForMember(dest => dest.SizeId, opt => opt.Ignore())
-                .ForMember(dest => dest.ColorId, opt => opt.Ignore())
-                .ForMember(dest => dest.ProductId, opt => opt.Ignore())
+                //.ForMember(dest => dest.VariantId, opt => opt.Ignore())
+                //.ForMember(dest => dest.SizeId, opt => opt.Ignore())
+                //.ForMember(dest => dest.ColorId, opt => opt.Ignore())
+                //.ForMember(dest => dest.ProductId, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
             //
             CreateMap<Color, ColorDto>();
@@ -47,9 +47,9 @@ namespace WebBanHang.Service.Profiles
             //
             CreateMap<Review, ReviewDto>();
             CreateMap<ReviewDto, Review>()
-                .ForMember(dest => dest.ReviewId, opt => opt.Ignore())
-                .ForMember(dest => dest.User, opt => opt.Ignore())
-                .ForMember(dest => dest.OrderItem, opt => opt.Ignore())
+                //.ForMember(dest => dest.ReviewId, opt => opt.Ignore())
+                //.ForMember(dest => dest.User, opt => opt.Ignore())
+                //.ForMember(dest => dest.OrderItem, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
             //
             CreateMap<OrderItem, OrderItemDto>()
@@ -71,10 +71,20 @@ namespace WebBanHang.Service.Profiles
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductVariant.Product.ProductName))
                 .ForMember(dest => dest.SizeName, opt => opt.MapFrom(src => src.ProductVariant.Size.SizeLabel))
                 .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
+                .ForMember(dest => dest.Image, opt => opt.MapFrom(src => src.ProductVariant.Product.Image))
                 .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.ProductVariant.StockQuantity));
 
             CreateMap<Cart, CartDto>()
                 .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.CartItems));
+            //User & Role
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.RoleNames, opt => opt.MapFrom(src => string.Join(", ", src.UserRoles.Select(ur => ur.Role.RoleName))))
+                .ReverseMap();
+            CreateMap<UserRole, UserRoleDto>().ReverseMap();
+            CreateMap<Role, RoleDto>().ReverseMap();
+            CreateMap<UserResgiterDto, User>()
+                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }

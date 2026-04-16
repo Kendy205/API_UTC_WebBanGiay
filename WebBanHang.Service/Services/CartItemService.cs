@@ -63,7 +63,7 @@ namespace WebBanHang.Service.Services
                     CartId = cartId,
                     VariantId = variantId,
                     Quantity = quantity,
-                    UnitPrice = (decimal)(variant.Product.SalePrice ?? variant.Product.BasePrice),
+                    UnitPrice = (decimal)(variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice),
                     CreatedAt = DateTime.UtcNow
                 };
 

@@ -20,7 +20,7 @@ namespace WebBanHang.Service.Services
         private readonly IMapper _mapper;
 
 
-        public AdminProductService(IUnitOfWork unitOfWork, IPhotoService photoService , IMapper mapper)
+        public AdminProductService(IUnitOfWork unitOfWork, IPhotoService photoService, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _photoService = photoService;
@@ -81,7 +81,7 @@ namespace WebBanHang.Service.Services
                     IsActive = pv.IsActive,
                     ProductId = pv.ProductId,
                     Sku = pv.Sku
-                    
+
                 }).ToList()
 
             });
@@ -92,8 +92,8 @@ namespace WebBanHang.Service.Services
                 Total = totalCount,
                 Page = page,
                 PageSize = pageSize
-    };
-}
+            };
+        }
 
         //public async Task<ProductAdminDto> CreateAsync(ProductAdminDto dto, IFormFile file)
         public async Task<ProductDto> AddAsync(ProductDto dto, IFormFile file)
@@ -117,32 +117,60 @@ namespace WebBanHang.Service.Services
             return _mapper.Map<ProductDto>(entity);
         }
 
-        public async Task UpdateAsync(long id, ProductAdminDto dto)
-{
-    var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
+        public async Task<ProductDto> UpdateAsync(long id, ProductDto dto, IFormFile file)
+        {
+            // 1. Tìm sản phẩm cũ trong DB
+            var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
+            if (entity == null) throw new Exception("Không tìm thấy sản phẩm");
 
-    if (entity == null)
-        throw new Exception("Không tìm thấy sản phẩm");
+            // 2. Map dữ liệu từ DTO sang Entity hiện tại (trừ Id và Image)
+            _mapper.Map(dto, entity);
 
-    entity.ProductName = dto.ProductName;
-    entity.BasePrice = dto.BasePrice;
+            // 3. Xử lý ảnh nếu có file mới gửi lên
+            if (file != null)
+            {
+                // a. Xóa ảnh cũ trên Cloudinary (nếu có PublicId)
+                if (!string.IsNullOrEmpty(entity.ImagePublicId))
+                {
+                    await _photoService.DeletePhotoAsync(entity.ImagePublicId);
+                }
 
-    entity.CategoryId = dto.CategoryId;
-    entity.IsActive = dto.IsActive;
+                // b. Thêm ảnh mới
+                var result = await _photoService.AddPhotoAsync(file);
+                if (result == null) throw new Exception("Lỗi khi tải ảnh mới lên Cloudinary");
 
-    _unitOfWork.Product.Update(entity);
-    await _unitOfWork.SaveAsync();
-}
+                // c. Cập nhật thông tin ảnh mới vào entity
+                entity.Image = result.SecureUrl.ToString();
+                entity.ImagePublicId = result.PublicId;
+            }
 
-public async Task DeleteAsync(long id)
-{
-    var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
+            // 4. Lưu vào database
+            _unitOfWork.Product.Update(entity);
+            await _unitOfWork.SaveAsync();
 
-    if (entity == null)
-        throw new Exception("Không tìm thấy sản phẩm");
+            return _mapper.Map<ProductDto>(entity);
+        }
 
-    _unitOfWork.Product.Remove(entity);
-    await _unitOfWork.SaveAsync();
-}
+        public async Task DeleteAsync(long id)
+        {
+            var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id);
+
+            if (entity == null)
+                throw new Exception("Không tìm thấy sản phẩm");
+
+            _unitOfWork.Product.Remove(entity);
+            await _unitOfWork.SaveAsync();
+        }
+
+        public async Task<ProductDto> GetProductByIdAsync(long id)
+        {
+            var entity = await _unitOfWork.Product.GetFirstOrDefaultAsync(x => x.ProductId == id, "Category,Brand,ProductVariants,ProductVariants.Color,ProductVariants.Size");
+
+            if (entity == null) throw new Exception("Không tìm thấy sản phẩm");
+
+            return _mapper.Map<ProductDto>(entity);
+        }
+
+        
     }
 }
