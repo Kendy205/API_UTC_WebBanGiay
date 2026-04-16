@@ -181,17 +181,17 @@ namespace WebBanHang.Service.Services
                         if (address == null) throw new Exception("Địa chỉ giao hàng không hợp lệ.");
                     }
 
-                    var order = new Order
-                    {
-                        UserId = customerId,
-                        ShippingAddressId = finalAddressId,
-                        OrderCode = $"ORD-ADM-{DateTime.UtcNow:yyMMddHHmmssfff}",
-                        OrderStatus = OrderStatus.Pending.ToString(),
-                        PaymentStatus = PaymentStatus.Unpaid.ToString(),
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
-                        ShippingFee = 30000
-                    };
+	                    var order = new Order
+	                    {
+	                        UserId = customerId,
+	                        ShippingAddressId = finalAddressId,
+	                        OrderCode = $"ORD-ADM-{DateTime.UtcNow:yyMMddHHmmssfff}",
+	                        OrderStatus = OrderStatus.Pending.ToString(),
+	                        PaymentStatus = PaymentStatus.Unpaid.ToString(),
+	                        CreatedAt = DateTime.UtcNow,
+	                        UpdatedAt = DateTime.UtcNow,
+	                        ShippingFee = checkoutDto.ShippingFee ?? 30000
+	                    };
 
                     decimal subtotal = 0;
                     var movements = new List<InventoryMovementDto>();
