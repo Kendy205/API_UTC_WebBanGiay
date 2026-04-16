@@ -18,7 +18,7 @@ namespace WebBanHang.Service.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<AdminPaymentListResponseDto> GetPaymentsAsync(AdminPaymentQueryDto queryDto)
+        public async Task<ApiResponse<AdminPaymentListResponseDto>> GetPaymentsAsync(AdminPaymentQueryDto queryDto)
         {
             var entities = await _unitOfWork.Payment.GetAllAsync(includeProperties: "Order.User");
             var query = entities.AsEnumerable();
@@ -53,10 +53,10 @@ namespace WebBanHang.Service.Services
                              .Select(MapToListItem)
                              .ToList();
 
-            return new AdminPaymentListResponseDto
+            return ApiResponse<AdminPaymentListResponseDto>.Succeeded(new AdminPaymentListResponseDto
             {
                 Data = items, Total = total, Page = page, PageSize = pageSize
-            };
+            }, "Lấy danh sách thanh toán thành công");
         }
 
         #region Helpers

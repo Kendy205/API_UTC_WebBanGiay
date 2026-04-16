@@ -6,6 +6,6 @@ namespace WebBanHang.Service.IServices
 {
     public interface IAdminPaymentsService
     {
-        Task<AdminPaymentListResponseDto> GetPaymentsAsync(AdminPaymentQueryDto queryDto);
+        Task<ApiResponse<AdminPaymentListResponseDto>> GetPaymentsAsync(AdminPaymentQueryDto queryDto);
     }
 }
