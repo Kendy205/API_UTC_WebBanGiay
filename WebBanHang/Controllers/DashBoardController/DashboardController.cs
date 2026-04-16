@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Threading.Tasks;
 using WebBanHang.Service.IServices;
 using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Dashboard;
@@ -26,54 +24,19 @@ namespace WebBanHang.Controllers.DashBoardController
         /// - startDate: 2024-01-01
         /// - endDate: 2024-12-31
         [HttpGet("summary")]
-        public async Task<IActionResult> GetSummaryStatistics(
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate)
+        public async Task<IActionResult> GetSummaryStatistics()
         {
             try
             {
-                //  Validate date range
-                if (startDate.HasValue && endDate.HasValue && startDate > endDate)
-                    return base.BadRequest(ApiResponse<object>.Failed(
-                        "startDate phải nhỏ hơn hoặc bằng endDate",
-                        400
-                    ));
-
-                //  Gọi service
-                var result = await _dashboardService.GetSummaryStatisticsAsync(startDate, endDate);
-
-                return base.Ok(ApiResponse<object>.Succeeded(
+                var result = await _dashboardService.GetSummaryStatisticsAsync();
+                return Ok(ApiResponse<object>.Succeeded(
                     result,
-                    "Lấy thống kê tổng quan thành công"
+                    "Lấy thống kê tổng quan tháng hiện tại thành công"
                 ));
             }
             catch (Exception ex)
             {
-                return base.StatusCode(500, ApiResponse<object>.Failed(
-                    $"Lỗi server: {ex.Message}",
-                    500
-                ));
-            }
-        }
-
-       
-
-        
-        [HttpGet("header-summary")]
-        public async Task<IActionResult> GetHeaderSummary()
-        {
-            try
-            {
-                var result = await _dashboardService.GetHeaderSummaryAsync();
-
-                return base.Ok(ApiResponse<object>.Succeeded(
-                    result,
-                    "Lấy tổng quan đầu ngày thành công"
-                ));
-            }
-            catch (Exception ex)
-            {
-                return base.StatusCode(500, ApiResponse<object>.Failed(
+                return StatusCode(500, ApiResponse<object>.Failed(
                     $"Lỗi server: {ex.Message}",
                     500
                 ));

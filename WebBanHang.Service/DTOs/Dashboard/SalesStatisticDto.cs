@@ -1,4 +1,4 @@
-namespace WebBanHang.Service.DTOs.Dashboard
+﻿namespace WebBanHang.Service.DTOs.Dashboard
 {
     /// <summary>DTO cho thống kê doanh số theo thời gian</summary>
     public class SalesStatisticDto

@@ -1,4 +1,4 @@
-namespace WebBanHang.Service.DTOs.Dashboard
+﻿namespace WebBanHang.Service.DTOs.Dashboard
 {
     public class SalesReportDto
     {
