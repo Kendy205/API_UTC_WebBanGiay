@@ -24,9 +24,9 @@ namespace WebBanHang.Service.Services
             _photoService = photoService;
         }
 
-        public async Task<PagedResult<ProductDto>> GetAllAsync(int? pageSize,int? page)
+        public async Task<PagedResult<ProductDto>> GetAllAsync(int? pageSize, int? page)
         {
-            var entities = await _unitOfWork.Product.GetAllAsync(null, "Category,Brand",pageSize,page);
+            var entities = await _unitOfWork.Product.GetAllAsync(null, "Category,Brand", pageSize, page);
             entities = entities.Where(x => x.IsActive).ToList();
             int totalCount = await _unitOfWork.Product.CountAsync(x => x.IsActive);
             return new PagedResult<ProductDto>
@@ -87,23 +87,32 @@ namespace WebBanHang.Service.Services
             }
         }
 
-        public async Task<IEnumerable<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId, long? brandId, decimal? minPrice, decimal? maxPrice, int pageNumber, int pageSize)
+        public async Task<PagedResult<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId, long? brandId, decimal? minPrice, decimal? maxPrice, int pageNumber, int pageSize)
         {
-            Expression<Func<Product, bool>> filter = x =>
-                x.IsActive &&
-                (string.IsNullOrEmpty(keyword) || x.ProductName.Contains(keyword)) &&
-                (!categoryId.HasValue || x.CategoryId == categoryId) &&
-                (!brandId.HasValue || x.BrandId == brandId) &&
-                (!minPrice.HasValue || x.BasePrice >= minPrice) &&
-                (!maxPrice.HasValue || x.BasePrice <= maxPrice);
+            Expression<Func<Product, bool>> filter = x => x.IsActive &&
+        (string.IsNullOrEmpty(keyword) || x.ProductName.Contains(keyword)) &&
+        (!categoryId.HasValue || x.CategoryId == categoryId) &&
+        (!brandId.HasValue || x.BrandId == brandId) &&
+        (!minPrice.HasValue || x.BasePrice >= minPrice) &&
+        (!maxPrice.HasValue || x.BasePrice <= maxPrice);
+
+            int totalCount = await _unitOfWork.Product.CountAsync(filter);
 
             var entities = await _unitOfWork.Product.GetAllAsync(
                 filter: filter,
                 includeProperties: "Category,Brand",
                 pageSize: pageSize,
-                pageNumber: pageNumber);
+                pageNumber: pageNumber,
+                orderBy: q => q.OrderByDescending(p => p.ProductId) // Đảm bảo hàng mới hiện lên đầu
 
-            return _mapper.Map<IEnumerable<ProductDto>>(entities);
+            );
+            return new PagedResult<ProductDto>
+            {
+                Data = _mapper.Map<IEnumerable<ProductDto>>(entities), // 8 sản phẩm
+                Total = totalCount,   // Tổng số ví dụ: 10
+                Page = pageNumber,    // Trang hiện tại
+                PageSize = pageSize   // 8
+            };
         }
     }
 }

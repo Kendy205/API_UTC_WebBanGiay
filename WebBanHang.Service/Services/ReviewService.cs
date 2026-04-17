@@ -145,6 +145,7 @@ namespace WebBanHang.Service.Services
         public async Task<IEnumerable<ReviewDto>> GetByProductIdAsync(long productId)
         {
             var entities = await _unitOfWork.Review.GetAllAsync(x => x.OrderItem.ProductVariant.ProductId == productId, "OrderItem,OrderItem.ProductVariant,User");
+            entities = entities.Where(r => r.IsPublic).ToList(); // Only return public reviews
             return _mapper.Map<IEnumerable<ReviewDto>>(entities);
         }
     }

@@ -32,7 +32,7 @@ namespace WebBanHang.Service.Services
             _addressService = addressService;
         }
 
-        public async Task<AdminOrderListResponseDto> GetOrdersAsync(
+        public async Task<PagedResult<AdminOrderListItemDto>> GetOrdersAsync(
             string? status, string? search, DateTime? startDate, DateTime? endDate, int page, int pageSize)
         {
             page = page < 1 ? 1 : page;
@@ -45,9 +45,9 @@ namespace WebBanHang.Service.Services
                 (!endDate.HasValue || x.CreatedAt <= endDate.Value);
 
             var orders = await _unitOfWork.Order.GetAllAsync(filter, "User,OrderItems,Payments", pageSize, page);
-            var totalCount = (await _unitOfWork.Order.GetAllAsync(filter)).Count();
+            var totalCount = await _unitOfWork.Order.CountAsync(filter);
 
-            return new AdminOrderListResponseDto
+            return new PagedResult<AdminOrderListItemDto>
             {
                 Data = _mapper.Map<List<AdminOrderListItemDto>>(orders),
                 Total = totalCount,
@@ -172,7 +172,7 @@ namespace WebBanHang.Service.Services
 
         private OrderItem BuildOrderItemSnapshot(ProductVariant v, int q)
         {
-            var p = v.PriceOverride ?? v.Product.SalePrice ?? v.Product.BasePrice;
+            var p = v.PriceOverride ??  (decimal)(v.Product.SalePrice >0 ? v.Product.SalePrice : v.Product.BasePrice);
             return new OrderItem
             {
                 VariantId = v.VariantId,

@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using WebBanHang.Model;
 using WebBanHang.Repository.UnitOfWork;
+using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Payment;
 using WebBanHang.Service.IServices;
 
@@ -22,7 +23,7 @@ namespace WebBanHang.Service.Services
             _mapper = mapper;
         }
 
-        public async Task<AdminPaymentListResponseDto> GetPaymentsAsync(
+        public async Task<PagedResult<AdminPaymentListItemDto>> GetPaymentsAsync(
             string? status,
             string? method,
             string? search,
@@ -36,7 +37,6 @@ namespace WebBanHang.Service.Services
             pageSize = pageSize < 1 ? 10 : pageSize;
 
             // 2. Xây dựng bộ lọc động (Predicate)
-            // Lưu ý: Đối với status và method, chúng ta lọc theo giá trị thô trong DB
             Expression<Func<Payment, bool>> filter = x =>
                 (string.IsNullOrEmpty(status) || x.PaymentStatus.ToLower() == status.ToLower() || (status.ToLower() == "paid" && x.PaymentStatus.ToLower() == "success")) &&
                 (string.IsNullOrEmpty(method) || x.PaymentMethod.ToLower() == method.ToLower() || (method.ToLower() == "banking" && x.PaymentMethod.ToLower() == "vnpay")) &&
@@ -44,7 +44,7 @@ namespace WebBanHang.Service.Services
                 (!startDate.HasValue || x.CreatedAt >= startDate.Value) &&
                 (!endDate.HasValue || x.CreatedAt <= endDate.Value);
 
-            // 3. Thực hiện truy vấn có phân trang và Include bảng liên quan
+            // 3. Thực hiện truy vấn có phân trang
             var payments = await _unitOfWork.Payment.GetAllAsync(
                 filter: filter,
                 includeProperties: "Order.User",
@@ -52,11 +52,11 @@ namespace WebBanHang.Service.Services
                 pageNumber: page
             );
 
-            // 4. Lấy tổng số bản ghi để tính toán ở UI
-            var totalCount = (await _unitOfWork.Payment.GetAllAsync(filter)).Count();
+            // 4. Lấy tổng số bản ghi (Dùng CountAsync thay vì GetAll rồi Count)
+            var totalCount = await _unitOfWork.Payment.CountAsync(filter);
 
-            // 5. Trả về kết quả đã được Map qua AutoMapper
-            return new AdminPaymentListResponseDto
+            // 5. Trả về kết quả PagedResult
+            return new PagedResult<AdminPaymentListItemDto>
             {
                 Data = _mapper.Map<List<AdminPaymentListItemDto>>(payments),
                 Total = totalCount,

@@ -36,7 +36,7 @@ namespace WebBanHang.Controllers.OrderController
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
 
             var result = await _myOrdersService.GetMyOrdersAsync(userId, pageNumber, pageSize);
-            return Ok(ApiResponse<IEnumerable<OrderDto>>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
+            return Ok(ApiResponse<PagedResult<OrderDto>>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
         }
 
         [HttpGet("{id:long}")]
@@ -148,7 +148,7 @@ namespace WebBanHang.Controllers.OrderController
                 // 1. Gọi Service xử lý DB
                 var response = await _paymentService.ProcessVnPayReturn(Request.Query);
 
-                if (response) 
+                if (response)
                 {
                     // 2. BẮT BUỘC trả về JSON đúng format này cho VNPay
                     return Ok(new { RspCode = "00", Message = "Confirm Success" });

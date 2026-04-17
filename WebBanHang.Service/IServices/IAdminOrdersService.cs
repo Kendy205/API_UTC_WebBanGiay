@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Common;
@@ -8,7 +9,7 @@ namespace WebBanHang.Service.IServices
 {
     public interface IAdminOrdersService
     {
-        Task<AdminOrderListResponseDto> GetOrdersAsync(
+        Task<PagedResult<AdminOrderListItemDto>> GetOrdersAsync(
       string? status,
       string? search,
       DateTime? startDate,

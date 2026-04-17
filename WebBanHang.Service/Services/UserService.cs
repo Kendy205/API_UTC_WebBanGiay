@@ -24,6 +24,7 @@ namespace WebBanHang.Service.Services
         public async Task<IEnumerable<UserDto>> GetAllAsync()
         {
             var entities = await _unitOfWork.User.GetAllAsync(null, "UserRoles,UserRoles.Role");
+            entities = entities.Where(x => x.Status!= "deleted").ToList();
             return _mapper.Map<IEnumerable<UserDto>>(entities);
         }
 

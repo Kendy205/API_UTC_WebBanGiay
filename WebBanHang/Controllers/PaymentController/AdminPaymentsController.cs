@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Common;
+using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Payment;
 using WebBanHang.Service.IServices;
 
@@ -36,7 +38,7 @@ namespace WebBanHang.Controllers.PaymentController
                     status, method, search, startDate, endDate, page, pageSize);
 
 
-                return Ok(ApiResponse<AdminPaymentListResponseDto>.Succeeded(result, "Lấy danh sách thanh toán thành công"));
+                return Ok(ApiResponse<PagedResult<AdminPaymentListItemDto>>.Succeeded(result, "Lấy danh sách thanh toán thành công"));
             }
             catch (Exception ex)
             {

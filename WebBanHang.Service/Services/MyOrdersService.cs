@@ -38,7 +38,7 @@ namespace WebBanHang.Service.Services
 
         // ================= GET METHODS =================
 
-        public async Task<IEnumerable<OrderDto>> GetMyOrdersAsync(long currentUserId, int pageNumber, int pageSize)
+        public async Task<PagedResult<OrderDto>> GetMyOrdersAsync(long currentUserId, int pageNumber, int pageSize)
         {
             // Đảm bảo các tham số phân trang có giá trị hợp lệ
             if (pageNumber < 1) pageNumber = 1;
@@ -51,9 +51,17 @@ namespace WebBanHang.Service.Services
                 pageNumber: pageNumber
             );
 
-            // Lưu ý: Repository hiện tại đang trả về danh sách đã phân trang, 
-            // nhưng không trả về tổng số bản ghi (TotalCount).
-            return _mapper.Map<IEnumerable<OrderDto>>(entities);
+            // 1. Đếm tổng số đơn hàng của người dùng hiện tại
+            var totalCount = await _unitOfWork.Order.CountAsync(x => x.UserId == currentUserId);
+
+            // 2. Trả về cấu trúc PagedResult
+            return new PagedResult<OrderDto>
+            {
+                Data = _mapper.Map<IEnumerable<OrderDto>>(entities),
+                Total = totalCount,
+                Page = pageNumber,
+                PageSize = pageSize
+            };
         }
 
         public async Task<OrderDto?> GetMyOrderByIdAsync(long orderId, long currentUserId)
@@ -230,7 +238,7 @@ namespace WebBanHang.Service.Services
         {
             if (order.OrderStatus == OrderStatus.Cancelled.ToString())
                 throw new Exception("Đơn hàng này đã được hủy trước đó.");
-            
+
             // Chỉ cho phép hủy khi đơn hàng đang chờ hoặc đã xác nhận nhưng chưa giao/đóng gói
             if (order.OrderStatus != OrderStatus.Pending.ToString().ToLower() &&
                 order.OrderStatus != OrderStatus.Confirmed.ToString().ToLower())

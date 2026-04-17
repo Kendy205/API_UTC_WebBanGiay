@@ -44,7 +44,7 @@ namespace WebBanHang.Controllers.ProductController
             return Ok(ApiResponse<ProductDto>.Succeeded(product, "Lấy sản phẩm thành công!"));
         }
 
-        
+
 
         //[HttpPut("{id}")]
         //[Authorize(Roles = "ADMIN")]
@@ -79,13 +79,16 @@ namespace WebBanHang.Controllers.ProductController
         //    return Ok(ApiResponse<string>.Succeeded(null, "Xóa sản phẩm thành công!"));
         //}
 
-        [HttpGet("filter")]
-        public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
-        {
-            var validPageNumber = pageNumber > 0 ? pageNumber : 1;
-            var validPageSize = pageSize > 0 ? pageSize : 10;
 
-            var products = await _productService.GetFilteredProductsAsync(
+        [HttpGet("filter")]
+
+        public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber, [FromQuery] int pageSize)
+        {
+
+            var validPageNumber = pageNumber > 0 ? pageNumber : 1;
+            var validPageSize = pageSize > 0 ? pageSize : 8;
+
+            var result = await _productService.GetFilteredProductsAsync(
                 keyword,
                 categoryId,
                 brandId,
@@ -94,7 +97,7 @@ namespace WebBanHang.Controllers.ProductController
                 validPageNumber,
                 validPageSize);
 
-            return Ok(ApiResponse<IEnumerable<ProductDto>>.Succeeded(products, "Lấy danh sách sản phẩm thành công!"));
+            return Ok(ApiResponse<PagedResult<ProductDto>>.Succeeded(result, "Lấy danh sách sản phẩm thành công!"));
         }
     }
 }

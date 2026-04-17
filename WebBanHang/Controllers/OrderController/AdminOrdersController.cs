@@ -22,8 +22,6 @@ namespace WebBanHang.Controllers.OrderController
         }
 
         [HttpGet]
-
-        [HttpGet]
         public async Task<IActionResult> GetOrders(
             [FromQuery] string? status,
             [FromQuery] string? search,
@@ -44,7 +42,7 @@ namespace WebBanHang.Controllers.OrderController
                     pageSize
                 );
 
-                return Ok(ApiResponse<AdminOrderListResponseDto>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
+                return Ok(ApiResponse<PagedResult<AdminOrderListItemDto>>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
             }
             catch (Exception ex)
             {
