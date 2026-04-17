@@ -6,7 +6,7 @@ namespace WebBanHang.Service.IServices
 {
     public interface IAddressService
     {
-        Task<IEnumerable<AddressDto>> GetAllAsync();
+        Task<IEnumerable<AddressDto>> GetAllAsync(int? pageSize=null, int? page=null);
         Task<AddressDto?> GetByIdAsync(long id);
         Task AddAsync(AddressDto dto);
         Task UpdateAsync(long id, AddressDto dto);

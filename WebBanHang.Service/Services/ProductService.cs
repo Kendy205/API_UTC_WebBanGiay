@@ -24,10 +24,19 @@ namespace WebBanHang.Service.Services
             _photoService = photoService;
         }
 
-        public async Task<IEnumerable<ProductDto>> GetAllAsync()
+        public async Task<PagedResult<ProductDto>> GetAllAsync(int? pageSize,int? page)
         {
-            var entities = await _unitOfWork.Product.GetAllAsync(null, "Category,Brand");
-            return _mapper.Map<IEnumerable<ProductDto>>(entities);
+            var entities = await _unitOfWork.Product.GetAllAsync(null, "Category,Brand",pageSize,page);
+            entities = entities.Where(x => x.IsActive).ToList();
+            int totalCount = await _unitOfWork.Product.CountAsync(x => x.IsActive);
+            return new PagedResult<ProductDto>
+            {
+                Data = _mapper.Map<IEnumerable<ProductDto>>(entities),
+                Total = totalCount,
+                Page = page ?? 1,
+                PageSize = pageSize ?? totalCount
+            };
+            //return _mapper.Map<IEnsumerable<ProductDto>>(new PagedResult<>);
         }
 
         public async Task<ProductDto?> GetByIdAsync(long id)

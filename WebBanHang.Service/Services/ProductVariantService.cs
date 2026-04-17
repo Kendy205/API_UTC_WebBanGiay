@@ -21,7 +21,7 @@ namespace WebBanHang.Service.Services
 
         public async Task<IEnumerable<ProductVariantDto>> GetAllAsync()
         {
-            var entities = await _unitOfWork.ProductVariant.GetAllAsync(null, "Product,Size,Color", 10, 1);
+            var entities = await _unitOfWork.ProductVariant.GetAllAsync(null, "Product,Size,Color");
             return _mapper.Map<IEnumerable<ProductVariantDto>>(entities);
         }
 

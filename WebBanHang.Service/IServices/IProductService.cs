@@ -7,7 +7,7 @@ namespace WebBanHang.Service.IServices
 {
     public interface IProductService
     {
-        Task<IEnumerable<ProductDto>> GetAllAsync();
+        Task<PagedResult<ProductDto>> GetAllAsync(int? pageSize,int? page);
         Task<ProductDto?> GetByIdAsync(long id);
         Task<ProductDto> AddAsync(ProductDto dto, IFormFile file);
         Task UpdateAsync(long id, ProductDto dto);

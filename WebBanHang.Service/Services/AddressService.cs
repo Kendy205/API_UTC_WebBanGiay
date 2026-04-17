@@ -19,9 +19,9 @@ namespace WebBanHang.Service.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<AddressDto>> GetAllAsync()
+        public async Task<IEnumerable<AddressDto>> GetAllAsync(int? pageSize=null,int? page=null)
         {
-            var entities = await _unitOfWork.Address.GetAllAsync();
+            var entities = await _unitOfWork.Address.GetAllAsync(null,null,pageSize,page);
             return _mapper.Map<IEnumerable<AddressDto>>(entities);
         }
 

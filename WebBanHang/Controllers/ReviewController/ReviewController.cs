@@ -30,7 +30,7 @@ namespace WebBanHang.Controllers.ReviewController
 
         // Admin endpoint: GET /api/Admin/reviews?page=1&pageSize=10&rating=5
         [HttpGet("/api/Admin/reviews")]
-        [Authorize(Roles = "Admin")] 
+        [Authorize(Roles = "ADMIN")] 
         public async Task<IActionResult> GetAdminReviews([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? rating = null)
         {
             if (page <= 0) page = 1;
@@ -48,7 +48,7 @@ namespace WebBanHang.Controllers.ReviewController
         }
 
         [HttpPut("/api/Admin/reviews/{id}/ispublic")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> SetVisibility(long id, [FromBody] SetVisibilityRequest request)
         {
             if (request == null) return BadRequest();
@@ -59,7 +59,7 @@ namespace WebBanHang.Controllers.ReviewController
 
 
         [HttpDelete("/api/Admin/reviews/{id}")]
-        [Authorize(Roles = "Admin")] 
+        [Authorize(Roles = "ADMIN")] 
         public async Task<IActionResult> Delete(long id)
         {
             var existing = await _reviewService.GetByIdAsync(id);

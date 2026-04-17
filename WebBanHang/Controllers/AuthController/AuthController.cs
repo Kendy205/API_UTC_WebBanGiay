@@ -18,31 +18,53 @@ namespace WebBanHang.Controllers.AuthController
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            var result = await _authService.RegisterAsync(dto);
-            if (result.Message != "Đăng ký thành công!")
-                return BadRequest(ApiResponse<AuthResponseDto>.Failed(result.Message));
+            try
+            {
 
-            return Ok(ApiResponse<AuthResponseDto>.Succeeded(result, "Đăng ký tài khoản thành công!"));
+                var result = await _authService.RegisterAsync(dto);
+                if (result.Message != "Đăng ký thành công!")
+                    return BadRequest(ApiResponse<AuthResponseDto>.Failed(result.Message));
+
+                return Ok(ApiResponse<AuthResponseDto>.Succeeded(result, "Đăng ký tài khoản thành công!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<AuthResponseDto>.Failed($"Đăng ký thất bại: {ex.Message}"));
+            }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var result = await _authService.LoginAsync(dto);
-            if (string.IsNullOrEmpty(result.AccessToken))
-                return Unauthorized(ApiResponse<AuthResponseDto>.Failed(result.Message, 401));
+            try
+            {
+                var result = await _authService.LoginAsync(dto);
+                if (string.IsNullOrEmpty(result.AccessToken))
+                    return Unauthorized(ApiResponse<AuthResponseDto>.Failed(result.Message, 401));
 
-            return Ok(ApiResponse<AuthResponseDto>.Succeeded(result, "Đăng nhập thành công!"));
+                return Ok(ApiResponse<AuthResponseDto>.Succeeded(result, "Đăng nhập thành công!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<AuthResponseDto>.Failed($"Đăng nhập thất bại: {ex.Message}"));
+            }
         }
 
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] TokenRequestDto dto)
         {
-            var result = await _authService.RefreshTokenAsync(dto);
-            if (string.IsNullOrEmpty(result.AccessToken))
-                return Unauthorized(ApiResponse<AuthResponseDto>.Failed(result.Message, 401));
+            try
+            {
+                var result = await _authService.RefreshTokenAsync(dto);
+                if (string.IsNullOrEmpty(result.AccessToken))
+                    return Unauthorized(ApiResponse<AuthResponseDto>.Failed(result.Message, 401));
 
-            return Ok(ApiResponse<AuthResponseDto>.Succeeded(result));
+                return Ok(ApiResponse<AuthResponseDto>.Succeeded(result));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<AuthResponseDto>.Failed($"Cấp lại token thất bại: {ex.Message}"));
+            }
         }
     }
 }

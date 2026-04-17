@@ -20,12 +20,17 @@ namespace WebBanHang.Controllers.ProductController
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProduct()
+        public async Task<IActionResult> GetAllProduct(int? pageSize,int page)
         {
-            var products = await _productService.GetAllAsync();
-            return Ok(ApiResponse<IEnumerable<ProductDto>>.Succeeded(products, "Lấy danh sách sản phẩm thành công!"));
+            var result = await _productService.GetAllAsync(pageSize,page);
+            return Ok(ApiResponse<PagedResult<ProductDto>>.Succeeded(result, "Lấy danh sách sản phẩm thành công!"));
         }
-
+        //[HttpGet]
+        //public async Task<IActionResult> GetAllProductFromBrand(int? pageSize, int page, long brandId)
+        //{
+        //    var result = await _productService.GetAllAsync(pageSize, page, brandId);
+        //    return Ok(ApiResponse<PagedResult<ProductDto>>.Succeeded(result, "Lấy danh sách sản phẩm theo thương hiệu thành công!"));
+        //}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
@@ -60,19 +65,19 @@ namespace WebBanHang.Controllers.ProductController
         //    return Ok(ApiResponse<ProductDto>.Succeeded(dto, "Cập nhật sản phẩm thành công!"));
         //}
 
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "ADMIN")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var existing = await _productService.GetByIdAsync(id);
-            if (existing == null)
-            {
-                return NotFound(ApiResponse<string>.Failed("Sản phẩm không tồn tại!", 404));
-            }
+        //[HttpDelete("{id}")]
+        //[Authorize(Roles = "ADMIN")]
+        //public async Task<IActionResult> Delete(long id)
+        //{
+        //    var existing = await _productService.GetByIdAsync(id);
+        //    if (existing == null)
+        //    {
+        //        return NotFound(ApiResponse<string>.Failed("Sản phẩm không tồn tại!", 404));
+        //    }
 
-            await _productService.DeleteAsync(id);
-            return Ok(ApiResponse<string>.Succeeded(null, "Xóa sản phẩm thành công!"));
-        }
+        //    await _productService.DeleteAsync(id);
+        //    return Ok(ApiResponse<string>.Succeeded(null, "Xóa sản phẩm thành công!"));
+        //}
 
         [HttpGet("filter")]
         public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)

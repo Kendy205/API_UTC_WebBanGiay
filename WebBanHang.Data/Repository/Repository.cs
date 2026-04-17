@@ -22,20 +22,48 @@ namespace WebBanHang.Repository
 
         public async Task AddAsync(T entity) { await dbSet.AddAsync(entity); }
 
-        public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>>? filter = null, string? includeProperties = null, int? pageSize = null, int? pageNumber = null)
+        public Task<int> CountAsync(Expression<Func<T, bool>>? filter = null)
         {
             IQueryable<T> query = dbSet;
-            if (filter != null) query = query.Where(filter);
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            return query.CountAsync();
+        }
+
+        public async Task<IEnumerable<T>> GetAllAsync(
+            Expression<Func<T, bool>>? filter = null,
+            string? includeProperties = null,
+            int? pageSize = null,
+            int? pageNumber = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
+        {
+            IQueryable<T> query = dbSet;
+            // 1. LỌC DỮ LIỆU (Filter)
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            // 2. NỐI BẢNG (Include)
+            if (includeProperties != null)
+            {
+                foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    query = query.Include(includeProp);
+                }
+            }
+            // 3. SẮP XẾP (OrderBy) 
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+            // 4. PHÂN TRANG (Skip & Take) 
             if (pageSize.HasValue && pageNumber.HasValue)
             {
                 query = query.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value);
             }
-            if (includeProperties != null) {
-                foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) {
-                    query = query.Include(includeProp);
-                }
-            }
-           
+            // 5. THỰC THI TRUY VẤN
             return await query.ToListAsync();
         }
 
@@ -43,8 +71,10 @@ namespace WebBanHang.Repository
         {
             IQueryable<T> query = dbSet;
             query = query.Where(filter);
-            if (includeProperties != null) {
-                foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) {
+            if (includeProperties != null)
+            {
+                foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
                     query = query.Include(includeProp);
                 }
             }

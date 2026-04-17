@@ -15,6 +15,6 @@ namespace WebBanHang.Service.IServices
         Task UpdateAsync(long id, PaymentDto dto);
         Task DeleteAsync(long id);
         string CreateVnPayPaymentUrl(OrderDto order, HttpContext context );
-        Task<ApiResponse<PaymentDto>> ProcessVnPayReturn(IQueryCollection collections);
+        Task<bool> ProcessVnPayReturn(IQueryCollection collections);
     }
 }

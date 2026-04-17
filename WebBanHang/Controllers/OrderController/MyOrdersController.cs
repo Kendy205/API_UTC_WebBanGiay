@@ -134,13 +134,32 @@ namespace WebBanHang.Controllers.OrderController
         {
             // 1. Gọi Service để Verify chữ ký và Cập nhật DB
             // Service sẽ tự kiểm tra mã 00 và đổi PaymentStatus thành Paid
-            var response = await _paymentService.ProcessVnPayReturn(Request.Query);
+            //var response = await _paymentService.ProcessVnPayReturn(Request.Query);
 
-            // 2. Lấy toàn bộ chuỗi query params gốc từ VNPay (VD: ?vnp_Amount=500000&vnp_ResponseCode=00...)
-            var queryString = Request.QueryString.Value;
+            //// 2. Lấy toàn bộ chuỗi query params gốc từ VNPay (VD: ?vnp_Amount=500000&vnp_ResponseCode=00...)
+            //var queryString = Request.QueryString.Value;
 
-            // 3. Redirect về React (Port 5173 của Vite) kèm theo query params
-            return Redirect($"http://localhost:5173/vnpay-return{queryString}");
+            //// 3. Redirect về React (Port 5173 của Vite) kèm theo query params
+            //return Redirect($"http://localhost:5173/vnpay-return{queryString}");
+            try
+            {
+                // 1. Gọi Service xử lý DB
+                var response = await _paymentService.ProcessVnPayReturn(Request.Query);
+
+                if (response) 
+                {
+                    // 2. BẮT BUỘC trả về JSON đúng format này cho VNPay
+                    return Ok(new { RspCode = "00", Message = "Confirm Success" });
+                }
+                else
+                {
+                    return Ok(new { RspCode = "97", Message = "Invalid Signature or Failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { RspCode = "99", Message = ex.Message });
+            }
         }
     }
 }

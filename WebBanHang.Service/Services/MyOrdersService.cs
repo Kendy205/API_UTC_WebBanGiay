@@ -96,17 +96,27 @@ namespace WebBanHang.Service.Services
                     {
                         var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == itemDto.VariantId, includeProperties: "Product");
                         if (variant == null) throw new Exception("Sản phẩm không tồn tại.");
-                        
+
                         var decreased = await _unitOfWork.ProductVariant.TryDecreaseStockAsync(variant.VariantId, itemDto.Quantity);
                         if (!decreased) throw new Exception($"Sản phẩm {variant.Product.ProductName} hết hàng.");
 
-                        decimal price = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
-                        order.OrderItems.Add(new OrderItem { 
-                            VariantId = variant.VariantId, 
-                            ProductNameSnapshot = variant.Product.ProductName, 
-                            UnitPrice = price, 
-                            Quantity = itemDto.Quantity, 
-                            LineTotal = price * itemDto.Quantity 
+                        decimal price = variant.Product.BasePrice;
+                        if (variant.Product.SalePrice > 0)
+                        {
+                            price = (decimal)variant.Product.SalePrice;
+                        }
+                        if (variant.PriceOverride.HasValue && variant.PriceOverride.Value < variant.Product.SalePrice)
+                        {
+                            price = variant.PriceOverride.Value;
+                        }
+                        //variant.PriceOverride ?? (variant.Product.SalePrice > 0 ? variant.Product.SalePrice : variant.Product.BasePrice);
+                        order.OrderItems.Add(new OrderItem
+                        {
+                            VariantId = variant.VariantId,
+                            ProductNameSnapshot = variant.Product.ProductName,
+                            UnitPrice = price,
+                            Quantity = itemDto.Quantity,
+                            LineTotal = price * itemDto.Quantity
                         });
                         subtotal += price * itemDto.Quantity;
 
@@ -165,7 +175,7 @@ namespace WebBanHang.Service.Services
                     if (order.OrderStatus == OrderStatus.Cancelled.ToString()) throw new Exception("Đơn hàng đã hủy trước đó.");
 
                     var movements = new List<InventoryMovementDto>();
-                    foreach (var item in order.OrderItems) 
+                    foreach (var item in order.OrderItems)
                     {
                         await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
                         movements.Add(new InventoryMovementDto
@@ -179,7 +189,7 @@ namespace WebBanHang.Service.Services
                             CreatedBy = currentUserId
                         });
                     }
-                    
+
                     await _inventoryMovementService.AddRangeAsync(movements);
 
                     order.OrderStatus = OrderStatus.Cancelled.ToString();

@@ -99,7 +99,7 @@ namespace WebBanHang.Service.Services
             return paymentUrl;
         }
 
-        public async Task<ApiResponse<PaymentDto>> ProcessVnPayReturn(IQueryCollection collections)
+        public async Task<bool> ProcessVnPayReturn(IQueryCollection collections)
         {
             var vnpay = new VnPayLibrary();
             foreach (var (key, value) in collections)
@@ -118,14 +118,16 @@ namespace WebBanHang.Service.Services
             bool checkSignature = vnpay.ValidateSignature(vnp_SecureHash, hashSecret);
             if (!checkSignature)
             {
-                return ApiResponse<PaymentDto>.Failed("Chữ ký bảo mật không hợp lệ!");
+                throw new Exception("Chữ ký không hợp lệ. Dữ liệu có thể đã bị thay đổi.");
+                return false;
             }
 
             // 2. Lấy đơn hàng từ DB
             var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == vnp_orderId);
             if (order == null)
             {
-                return ApiResponse<PaymentDto>.Failed("Không tìm thấy thông tin đơn hàng.");
+                throw new Exception("Không tìm thấy thông tin đơn hàng.");
+                return false;
             }
 
             // 3. Kiểm tra mã phản hồi từ VNPay (00 = Thành công)
@@ -151,11 +153,17 @@ namespace WebBanHang.Service.Services
                 await _unitOfWork.Payment.AddAsync(paymentRecord);
                 await _unitOfWork.SaveAsync(); // Lưu tất cả thay đổi cùng lúc
 
-                var dto = _mapper.Map<PaymentDto>(paymentRecord);
-                return ApiResponse<PaymentDto>.Succeeded(dto, "Thanh toán thành công.");
+               // var dto = _mapper.Map<PaymentDto>(paymentRecord);
+                return true;
+                // ApiResponse<PaymentDto>.Succeeded(dto, "Thanh toán thành công.");
             }
-
-            return ApiResponse<PaymentDto>.Failed("Giao dịch thanh toán thất bại hoặc bị hủy.");
+            else
+            {
+                throw new Exception("Giao dịch thanh toán thất bại hoặc bị hủy.");
+                return false;
+            }   
+            return false;
+            //return ApiResponse<PaymentDto>.Failed("Giao dịch thanh toán thất bại hoặc bị hủy.");
         }
     }
 }
