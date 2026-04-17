@@ -2,11 +2,11 @@ using AutoMapper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using WebBanHang.Model;
 using WebBanHang.Model.Enums;
 using WebBanHang.Repository.UnitOfWork;
-using WebBanHang.Service.DTOs.Common;
 using WebBanHang.Service.DTOs.Model;
 using WebBanHang.Service.DTOs.Order;
 using WebBanHang.Service.IServices;
@@ -18,125 +18,116 @@ namespace WebBanHang.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IInventoryMovementService _inventoryMovementService;
+        private readonly IAddressService _addressService;
 
-        public AdminOrdersService(IUnitOfWork unitOfWork, IMapper mapper, IInventoryMovementService inventoryMovementService)
+        public AdminOrdersService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IInventoryMovementService inventoryMovementService,
+            IAddressService addressService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _inventoryMovementService = inventoryMovementService;
+            _addressService = addressService;
         }
 
-        public async Task<AdminOrderListResponseDto> GetOrdersAsync(AdminOrderQueryDto queryDto)
+        public async Task<AdminOrderListResponseDto> GetOrdersAsync(
+            string? status, string? search, DateTime? startDate, DateTime? endDate, int page, int pageSize)
         {
-            var entities = await _unitOfWork.Order.GetAllAsync(includeProperties: "User,OrderItems,Payments");
-            var query = entities.AsEnumerable();
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 10 : pageSize;
 
-            if (!string.IsNullOrWhiteSpace(queryDto.Status)) 
-                query = query.Where(x => x.OrderStatus.Equals(queryDto.Status, StringComparison.OrdinalIgnoreCase));
-            
-            if (!string.IsNullOrWhiteSpace(queryDto.Search)) 
-                query = query.Where(x => x.OrderCode.Contains(queryDto.Search, StringComparison.OrdinalIgnoreCase) || 
-                                        (x.User != null && x.User.FullName.Contains(queryDto.Search, StringComparison.OrdinalIgnoreCase)));
+            Expression<Func<Order, bool>> filter = x =>
+                (string.IsNullOrEmpty(status) || x.OrderStatus.ToLower() == status.ToLower()) &&
+                (string.IsNullOrEmpty(search) || x.OrderCode.Contains(search) || x.User.FullName.Contains(search)) &&
+                (!startDate.HasValue || x.CreatedAt >= startDate.Value) &&
+                (!endDate.HasValue || x.CreatedAt <= endDate.Value);
 
-            if (queryDto.StartDate.HasValue) query = query.Where(x => x.CreatedAt >= queryDto.StartDate.Value);
-            if (queryDto.EndDate.HasValue) query = query.Where(x => x.CreatedAt <= queryDto.EndDate.Value);
+            var orders = await _unitOfWork.Order.GetAllAsync(filter, "User,OrderItems,Payments", pageSize, page);
+            var totalCount = (await _unitOfWork.Order.GetAllAsync(filter)).Count();
 
-            var total = query.Count();
-            var page = queryDto.Page > 0 ? queryDto.Page : 1;
-            var pageSize = queryDto.PageSize > 0 ? queryDto.PageSize : 10;
-            
-            var items = query.OrderByDescending(x => x.CreatedAt)
-                             .Skip((page - 1) * pageSize)
-                             .Take(pageSize)
-                             .Select(o => new AdminOrderListItemDto { 
-                                 Id = o.OrderId, 
-                                 CustomerName = o.User?.FullName ?? "N/A", 
-                                 Total = o.TotalAmount, 
-                                 Status = o.OrderStatus, 
-                                 CreatedAt = o.CreatedAt,
-                                 ItemCount = o.OrderItems.Count,
-                                 PaymentMethod = NormalizePaymentMethod(o.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMethod),
-                             }).ToList();
-
-            return new AdminOrderListResponseDto { Data = items, Total = total, Page = page, PageSize = pageSize };
+            return new AdminOrderListResponseDto
+            {
+                Data = _mapper.Map<List<AdminOrderListItemDto>>(orders),
+                Total = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<AdminOrderDetailDto?> GetOrderDetailAsync(long id)
         {
-            var o = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == id, includeProperties: "User,OrderItems.ProductVariant,ShippingAddress,Payments");
-            if (o == null) return null;
-            
-            return new AdminOrderDetailDto {
-                Id = o.OrderId, 
-                CustomerName = o.User?.FullName ?? "N/A", 
-                Address = FormatAddress(o.ShippingAddress),
-                Total = o.TotalAmount, 
-                Status = o.OrderStatus, 
-                PaymentMethod = NormalizePaymentMethod(o.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMethod),
-                Items = o.OrderItems.Select(i => new AdminOrderDetailItemDto { 
-                    ProductId = i.ProductVariant?.ProductId ?? 0,
-                    ProductName = i.ProductNameSnapshot, 
-                    Quantity = i.Quantity, 
-                    UnitPrice = i.UnitPrice 
-                }).ToList() 
-            };
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(
+                x => x.OrderId == id,
+                "User,ShippingAddress,OrderItems,Payments"
+            );
+
+            return order == null ? null : _mapper.Map<AdminOrderDetailDto>(order);
         }
 
         public async Task<AdminOrderStatusResultDto> UpdateOrderStatusAsync(long id, string status)
         {
-            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                try
+                var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == id, "OrderItems");
+                if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
+
+                string oldStatus = order.OrderStatus;
+                order.OrderStatus = status;
+                order.UpdatedAt = DateTime.UtcNow;
+
+                // Xử lý hoàn kho nếu hủy đơn
+                if (status.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase) &&
+                    !oldStatus.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
-                    var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == id, includeProperties: "OrderItems");
-                    if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
-
-                    if (status.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (order.OrderStatus.Equals(OrderStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new Exception("Đơn hàng đã hủy trước đó.");
-                        }
-
-                        var movements = new List<InventoryMovementDto>();
-                        foreach (var item in order.OrderItems) 
-                        {
-                            await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
-                            movements.Add(new InventoryMovementDto
-                            {
-                                VariantId = item.VariantId,
-                                MovementType = InventoryMovementType.IN.ToString(),
-                                Quantity = item.Quantity,
-                                ReferenceType = "order_cancel",
-                                ReferenceId = order.OrderId,
-                                Note = $"Order cancelled by Admin: {order.OrderCode}",
-                                CreatedBy = order.UserId // Tạm thời dùng UserId của chủ đơn vì không có context adminId ở đây
-                            });
-                        }
-                        await _inventoryMovementService.AddRangeAsync(movements);
-                        order.OrderStatus = OrderStatus.Cancelled.ToString();
-                    }
-                    else
-                    {
-                        order.OrderStatus = status;
-                    }
-
-                    _unitOfWork.Order.Update(order);
-                    await _unitOfWork.SaveAsync();
-                    await transaction.CommitAsync();
-                    return new AdminOrderStatusResultDto { Id = id, Status = order.OrderStatus };
+                    await _inventoryMovementService.HandleOrderCancelAsync(order, 0);
                 }
-                catch (Exception) { await transaction.RollbackAsync(); throw; }
+
+                _unitOfWork.Order.Update(order);
+                await _unitOfWork.SaveAsync();
+                await transaction.CommitAsync();
+
+                return new AdminOrderStatusResultDto { Id = id, Status = status };
             }
+            catch { await transaction.RollbackAsync(); throw; }
+        }
+
+        public async Task<OrderDto> CreateOrderAsync(CheckoutDto checkoutDto, long customerId)
+        {
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var addressId = await ResolveAddressAsync(checkoutDto, customerId);
+                var order = CreateOrderHeader(customerId, addressId, checkoutDto);
+
+                foreach (var item in checkoutDto.Items)
+                {
+                    var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == item.VariantId, "Product,Size,Color");
+                    order.OrderItems.Add(BuildOrderItemSnapshot(variant!, item.Quantity));
+                }
+
+                FinalizeOrderTotals(order);
+                await _unitOfWork.Order.AddAsync(order);
+                await _unitOfWork.SaveAsync();
+
+                await _inventoryMovementService.HandleCheckoutAsync(order, checkoutDto.Items, 0);
+
+                await transaction.CommitAsync();
+                return _mapper.Map<OrderDto>(order);
+            }
+            catch { await transaction.RollbackAsync(); throw; }
         }
 
         public async Task<OrderDto> UpdateOrderAsync(long orderId, OrderUpdateDto updateDto)
         {
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId);
-            if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
-            
-            if (!string.IsNullOrEmpty(updateDto.OrderStatus)) order.OrderStatus = updateDto.OrderStatus;
-            
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == orderId);
+            if (order == null) throw new Exception("Đơn hàng không tồn tại.");
+
+            _mapper.Map(updateDto, order);
+            order.UpdatedAt = DateTime.UtcNow;
+
             _unitOfWork.Order.Update(order);
             await _unitOfWork.SaveAsync();
             return _mapper.Map<OrderDto>(order);
@@ -144,114 +135,62 @@ namespace WebBanHang.Service.Services
 
         public async Task<bool> DeleteOrderAsync(long orderId)
         {
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId);
-            if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
-            
+            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(x => x.OrderId == orderId);
+            if (order == null) return false;
+
             _unitOfWork.Order.Remove(order);
             await _unitOfWork.SaveAsync();
             return true;
         }
 
-        public async Task<OrderDto> CreateOrderAsync(CheckoutDto checkoutDto, long customerId)
+        // ================= PRIVATE HELPERS =================
+
+        private async Task<long> ResolveAddressAsync(CheckoutDto dto, long userId)
         {
-            if (checkoutDto.Items == null || !checkoutDto.Items.Any())
+            if (dto.NewAddress != null)
             {
-                throw new Exception("Danh sách sản phẩm đặt hàng không hợp lệ.");
+                dto.NewAddress.UserId = userId;
+                await _addressService.AddAsync(dto.NewAddress);
+                var addrs = await _unitOfWork.Address.GetAllAsync(x => x.UserId == userId);
+                return addrs.OrderByDescending(a => a.AddressId).First().AddressId;
             }
-
-            using (var transaction = await _unitOfWork.BeginTransactionAsync())
-            {
-                try
-                {
-                    long finalAddressId = 0;
-                    if (checkoutDto.NewAddress != null)
-                    {
-                        checkoutDto.NewAddress.UserId = customerId;
-                        await _unitOfWork.Address.AddAsync(_mapper.Map<Address>(checkoutDto.NewAddress));
-                        await _unitOfWork.SaveAsync();
-                        var addr = (await _unitOfWork.Address.GetAllAsync(a => a.UserId == customerId)).OrderByDescending(a => a.AddressId).First();
-                        finalAddressId = addr.AddressId;
-                    }
-                    else if (checkoutDto.ShippingAddressId.HasValue) finalAddressId = checkoutDto.ShippingAddressId.Value;
-                    else throw new Exception("Thiếu địa chỉ.");
-
-                    if (checkoutDto.ShippingAddressId.HasValue)
-                    {
-                        var address = await _unitOfWork.Address.GetFirstOrDefaultAsync(a => a.AddressId == finalAddressId && a.UserId == customerId);
-                        if (address == null) throw new Exception("Địa chỉ giao hàng không hợp lệ.");
-                    }
-
-	                    var order = new Order
-	                    {
-	                        UserId = customerId,
-	                        ShippingAddressId = finalAddressId,
-	                        OrderCode = $"ORD-ADM-{DateTime.UtcNow:yyMMddHHmmssfff}",
-	                        OrderStatus = OrderStatus.Pending.ToString(),
-	                        PaymentStatus = PaymentStatus.Unpaid.ToString(),
-	                        CreatedAt = DateTime.UtcNow,
-	                        UpdatedAt = DateTime.UtcNow,
-	                        ShippingFee = checkoutDto.ShippingFee ?? 30000
-	                    };
-
-                    decimal subtotal = 0;
-                    var movements = new List<InventoryMovementDto>();
-                    foreach (var item in checkoutDto.Items)
-                    {
-                        var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == item.VariantId, includeProperties: "Product");
-                        if (variant == null) throw new Exception("Sản phẩm không tồn tại.");
-                        if (!await _unitOfWork.ProductVariant.TryDecreaseStockAsync(variant.VariantId, item.Quantity))
-                            throw new Exception("Sản phẩm không đủ hàng.");
-
-                        decimal price = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
-                        order.OrderItems.Add(new OrderItem { VariantId = variant.VariantId, ProductNameSnapshot = variant.Product.ProductName, UnitPrice = price, Quantity = item.Quantity, LineTotal = price * item.Quantity });
-                        subtotal += price * item.Quantity;
-
-                        movements.Add(new InventoryMovementDto
-                        {
-                            VariantId = variant.VariantId,
-                            MovementType = InventoryMovementType.OUT.ToString(),
-                            Quantity = item.Quantity,
-                            ReferenceType = "order",
-                            Note = $"Admin created order: {order.OrderCode}",
-                            CreatedBy = customerId // Tạm thời dùng customerId
-                        });
-                    }
-
-                    order.SubtotalAmount = subtotal;
-                    order.TotalAmount = subtotal + order.ShippingFee;
-
-                    await _unitOfWork.Order.AddAsync(order);
-                    await _unitOfWork.SaveAsync();
-
-                    foreach (var m in movements)
-                    {
-                        m.ReferenceId = order.OrderId;
-                    }
-                    await _inventoryMovementService.AddRangeAsync(movements);
-
-                    await transaction.CommitAsync();
-                    return _mapper.Map<OrderDto>(order);
-                }
-                catch { await transaction.RollbackAsync(); throw; }
-            }
+            return dto.ShippingAddressId ?? throw new Exception("Địa chỉ là bắt buộc.");
         }
 
-        private static string? NormalizePaymentMethod(string? method)
+        private Order CreateOrderHeader(long userId, long addressId, CheckoutDto dto) => new Order
         {
-            return method?.ToLower() switch
+            UserId = userId,
+            ShippingAddressId = addressId,
+            OrderCode = $"ADM-{DateTime.UtcNow:yyMMddHHmmssfff}",
+            OrderStatus = OrderStatus.Confirmed.ToString(),
+            PaymentStatus = PaymentStatus.Unpaid.ToString(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            ShippingFee = dto.ShippingFee ?? 0,
+            OrderItems = new List<OrderItem>()
+        };
+
+        private OrderItem BuildOrderItemSnapshot(ProductVariant v, int q)
+        {
+            var p = v.PriceOverride ?? v.Product.SalePrice ?? v.Product.BasePrice;
+            return new OrderItem
             {
-                "cod" => "COD",
-                "bank_transfer" => "Banking",
-                "banking" => "Banking",
-                "vnpay" => "Banking",
-                _ => "Thanh toán khi nhận hàng"
+                VariantId = v.VariantId,
+                ProductNameSnapshot = v.Product.ProductName,
+                SizeLabelSnapshot = v.Size?.SizeLabel,
+                ColorNameSnapshot = v.Color?.ColorName,
+                SkuSnapshot = v.Sku,
+                UnitPrice = p,
+                Quantity = q,
+                LineTotal = p * q
             };
         }
 
-        private static string FormatAddress(Address? address)
+        private void FinalizeOrderTotals(Order order)
         {
-            if (address == null) return string.Empty;
-            return string.Join(", ", new[] { address.StreetAddress, address.Ward, address.District, address.Province }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            var subtotal = order.OrderItems.Sum(x => x.LineTotal);
+            order.SubtotalAmount = subtotal;
+            order.TotalAmount = subtotal + order.ShippingFee - order.DiscountAmount;
         }
     }
 }
