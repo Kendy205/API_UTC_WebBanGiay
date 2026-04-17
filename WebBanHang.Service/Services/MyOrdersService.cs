@@ -18,17 +18,22 @@ namespace WebBanHang.Service.Services
         private readonly IMapper _mapper;
         private readonly IAddressService _addressService;
         private readonly IInventoryMovementService _inventoryMovementService;
-
+        private readonly ICartService _cartService;
+        private readonly ICartItemService _cartItemService;
         public MyOrdersService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IAddressService addressService,
-            IInventoryMovementService inventoryMovementService)
+            IInventoryMovementService inventoryMovementService, 
+            ICartService cartService,       
+            ICartItemService cartItemService )
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _addressService = addressService;
             _inventoryMovementService = inventoryMovementService;
+            _cartService = cartService;
+            _cartItemService = cartItemService;
         }
 
         // ================= GET METHODS =================
@@ -65,49 +70,37 @@ namespace WebBanHang.Service.Services
 
         public async Task<OrderDto> CheckoutAsync(CheckoutDto checkoutDto, long currentUserId)
         {
-            // 1. Kiểm tra tính hợp lệ cơ bản của dữ liệu đầu vào
-            if (checkoutDto.Items == null || !checkoutDto.Items.Any())
-                throw new Exception("Danh sách sản phẩm thanh toán không được để trống.");
+            // 1. Dùng CartService lấy thông tin giỏ hàng (Thay cho dùng UnitOfWork trực tiếp)
+            var cartDto = await _cartService.GetCartByUserId(currentUserId);
 
-            // 2. [MỚI] Kiểm tra giỏ hàng active trong Database
-            var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(
-                x => x.UserId == currentUserId && x.Status == "active",
-                includeProperties: "CartItems"
-            );
-
-            if (activeCart == null || !activeCart.CartItems.Any())
-                throw new Exception("Giỏ hàng của bạn hiện đang trống hoặc không khả dụng.");
-
-
+            if (cartDto == null || cartDto.Items == null || !cartDto.Items.Any())
+                throw new Exception("Giỏ hàng không tồn tại hoặc đang trống.");
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
-
             try
             {
-                // 3. Giải quyết địa chỉ giao hàng
+                // 2. Các bước giải quyết địa chỉ, tạo header đơn hàng (Giữ nguyên logic của bạn)
                 var addressId = await ResolveAddressAsync(checkoutDto, currentUserId);
-
-                // 4. Khởi tạo Header đơn hàng
                 var order = CreateOrderHeader(currentUserId, addressId, checkoutDto);
 
-                // 5. Build Items & Snapshots
+                // 3. Build Items (Sử dụng danh sách items từ CheckoutDto gửi lên)
                 foreach (var item in checkoutDto.Items)
                 {
                     var variant = await GetVariantWithDetailsAsync(item.VariantId);
-                    var orderItem = BuildOrderItemSnapshot(variant, item.Quantity);
-                    order.OrderItems.Add(orderItem);
+                    order.OrderItems.Add(BuildOrderItemSnapshot(variant, item.Quantity));
                 }
 
-                // 6. Tính toán & Lưu đơn
+                // 4. Lưu đơn hàng và xử lý kho
                 FinalizeOrderTotals(order);
                 await _unitOfWork.Order.AddAsync(order);
                 await _unitOfWork.SaveAsync();
 
-                // 7. Xử lý kho thông qua InventoryMovementService
                 await _inventoryMovementService.HandleCheckoutAsync(order, checkoutDto.Items, currentUserId);
 
-                // 8. Dọn dẹp giỏ hàng (Sử dụng chính đối tượng activeCart đã lấy ở bước 2)
-                await ClearCartAfterCheckoutAsync(activeCart, checkoutDto.Items);
+                // 5. DỌN DẸP GIỎ HÀNG: Sử dụng hàm Clear có sẵn trong CartItemService
+                // Hàm này bên trong đã có sẵn logic truy vấn database để xóa, 
+                // bạn chỉ cần truyền CartId vào là xong, cực kỳ sạch sẽ.
+                await _cartItemService.ClearCartAsync(cartDto.CartId);
 
                 await transaction.CommitAsync();
                 return _mapper.Map<OrderDto>(order);
@@ -118,7 +111,6 @@ namespace WebBanHang.Service.Services
                 throw;
             }
         }
-
         // ================= CANCEL ORDER =================
 
         public async Task<bool> CancelMyOrderAsync(long orderId, long currentUserId)
@@ -245,22 +237,6 @@ namespace WebBanHang.Service.Services
                 throw new Exception("Đơn hàng đang trong quá trình vận chuyển, không thể hủy.");
         }
 
-        private async Task ClearCartAfterCheckoutAsync(Cart activeCart, IEnumerable<CartItemLocalDto> processedItems)
-        {
-            var variantIds = processedItems.Select(x => x.VariantId).ToList();
-
-            // Lọc ra các item cần xóa từ giỏ hàng đã nạp sẵn
-            var itemsToRemove = activeCart.CartItems
-                .Where(x => variantIds.Contains(x.VariantId))
-                .ToList();
-
-            if (itemsToRemove.Any())
-            {
-                _unitOfWork.CartItem.RemoveRange(itemsToRemove);
-                activeCart.UpdatedAt = DateTime.UtcNow;
-                _unitOfWork.Cart.Update(activeCart);
-                await _unitOfWork.SaveAsync();
-            }
-        }
+        
     }
 }
