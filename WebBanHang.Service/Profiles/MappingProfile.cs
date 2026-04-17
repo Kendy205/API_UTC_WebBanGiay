@@ -1,6 +1,8 @@
 using AutoMapper;
 using WebBanHang.Model;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.DTOs.Order;
+using WebBanHang.Service.DTOs.Payment;
 
 namespace WebBanHang.Service.Profiles
 {
@@ -8,6 +10,55 @@ namespace WebBanHang.Service.Profiles
     {
         public MappingProfile()
         {
+            CreateMap<Order, AdminOrderListItemDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.OrderId))
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"))
+                .ForMember(dest => dest.ItemCount, opt => opt.MapFrom(src => src.OrderItems != null ? src.OrderItems.Count : 0))
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src =>
+                    src.Payments != null && src.Payments.Any()
+                    ? src.Payments.OrderByDescending(p => p.CreatedAt).First().PaymentMethod
+                    : "N/A"))
+                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalAmount))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.OrderStatus));
+
+            // 2. Mapping cho chi tiết mặt hàng trong đơn hàng (AdminOrderDetailItemDto)
+            CreateMap<OrderItem, AdminOrderDetailItemDto>()
+                .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.VariantId))
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductNameSnapshot))
+                .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.Quantity))
+                .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.UnitPrice));
+
+            // 3. Mapping cho chi tiết đơn hàng (AdminOrderDetailDto)
+            CreateMap<Order, AdminOrderDetailDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.OrderId))
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.OrderStatus))
+                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.TotalAmount))
+                .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.OrderItems))
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src =>
+                    src.Payments != null && src.Payments.Any()
+                    ? src.Payments.OrderByDescending(p => p.CreatedAt).First().PaymentMethod
+                    : "N/A"))
+                .ForMember(dest => dest.Address, opt => opt.MapFrom(src =>
+                    src.ShippingAddress != null
+                    ? $"{src.ShippingAddress.StreetAddress}, {src.ShippingAddress.Ward}, {src.ShippingAddress.District}, {src.ShippingAddress.Province}"
+                    : "N/A"));
+            // Trong MappingProfile.cs
+
+            CreateMap<Payment, AdminPaymentListItemDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src =>
+                    !string.IsNullOrWhiteSpace(src.TransactionCode) ? src.TransactionCode.Trim() : $"PAY-{src.PaymentId}"))
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src =>
+                    src.Order != null && src.Order.User != null ? src.Order.User.FullName : "N/A"))
+                .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                // Logic Normalize Method đưa vào đây
+                .ForMember(dest => dest.Method, opt => opt.MapFrom(src =>
+                    src.PaymentMethod != null ? (src.PaymentMethod.ToLower() == "vnpay" || src.PaymentMethod.ToLower() == "banking" ? "Banking" : "COD") : "N/A"))
+                // Logic Normalize Status đưa vào đây
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src =>
+                    src.PaymentStatus != null && (src.PaymentStatus.ToLower() == "paid" || src.PaymentStatus.ToLower() == "success") ? "Paid" : "Pending"));
+
             //
             CreateMap<Product, ProductDto>()
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.CategoryName))
@@ -39,8 +90,11 @@ namespace WebBanHang.Service.Profiles
             CreateMap<SizeDto, Size>().ForMember(dest => dest.SizeId, opt => opt.Ignore());
             //
             CreateMap<Order, OrderDto>()
-                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User.FullName))
-                .ReverseMap();
+               .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : "N/A"))
+               .ForMember(dest => dest.SubtotalAmount, opt => opt.MapFrom(src => src.SubtotalAmount)) // Đúng tên trong OrderDto
+               .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.TotalAmount))       // Đúng tên trong OrderDto
+               .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems))         // Khớp với List<OrderItemDto>
+               .ReverseMap();
             //
             CreateMap<Address, AddressDto>();
             CreateMap<Address, AddressDto>().ReverseMap();
@@ -56,13 +110,19 @@ namespace WebBanHang.Service.Profiles
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
             //
             CreateMap<OrderItem, OrderItemDto>()
-                .ForMember(dest => dest.ProductNameSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Product.ProductName))
-                .ForMember(dest => dest.SizeLabelSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Size.SizeLabel))
-                .ForMember(dest => dest.ColorNameSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Color.ColorName))
-                .ForMember(dest => dest.SkuSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Sku))
-                .ForMember(dest =>dest.imageUrlSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Product.Image))
-                .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductVariant.ProductId));
-                
+                 .ForMember(dest => dest.OrderItemId, opt => opt.MapFrom(src => src.OrderItemId))
+                .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.OrderId))
+                .ForMember(dest => dest.VariantId, opt => opt.MapFrom(src => src.VariantId))
+                // Map các trường Snapshot từ Entity sang DTO
+                .ForMember(dest => dest.ProductNameSnapshot, opt => opt.MapFrom(src => src.ProductNameSnapshot))
+                .ForMember(dest => dest.SizeLabelSnapshot, opt => opt.MapFrom(src => src.SizeLabelSnapshot))
+                .ForMember(dest => dest.ColorNameSnapshot, opt => opt.MapFrom(src => src.ColorNameSnapshot))
+                .ForMember(dest => dest.SkuSnapshot, opt => opt.MapFrom(src => src.SkuSnapshot))
+                .ForMember(dest => dest.imageUrlSnapshot, opt => opt.MapFrom(src => src.ProductVariant.Product.Image))
+                .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.UnitPrice))
+                .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.Quantity))
+                .ForMember(dest => dest.LineTotal, opt => opt.MapFrom(src => src.LineTotal))
+                .ReverseMap();
 
             //
             CreateMap<Category, CategoryDto>().ReverseMap();

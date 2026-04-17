@@ -27,13 +27,15 @@ namespace WebBanHang.Controllers.OrderController
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMyOrders()
+        public async Task<IActionResult> GetMyOrders(
+                [FromQuery] int pageNumber = 1,
+                [FromQuery] int pageSize = 10)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userId = long.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
 
-            var result = await _myOrdersService.GetMyOrdersAsync(userId);
+            var result = await _myOrdersService.GetMyOrdersAsync(userId, pageNumber, pageSize);
             return Ok(ApiResponse<IEnumerable<OrderDto>>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
         }
 
@@ -104,7 +106,7 @@ namespace WebBanHang.Controllers.OrderController
             // 1. Kiểm tra xem đơn hàng có tồn tại và có thuộc về user đang đăng nhập không
             var orderResult = await _myOrdersService.GetMyOrderByIdAsync(orderId, long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"));
 
-            if ( orderResult  == null)
+            if (orderResult == null)
             {
                 return NotFound(orderResult); // Lỗi 404 nếu không tìm thấy
             }

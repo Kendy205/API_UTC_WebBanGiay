@@ -11,7 +11,7 @@ namespace WebBanHang.Controllers.OrderController
 {
     [Route("api/Admin/Orders")]
     [ApiController]
-   // [Authorize(Roles = "ADMIN")]
+    // [Authorize(Roles = "ADMIN")]
     public class AdminOrdersController : ControllerBase
     {
         private readonly IAdminOrdersService _adminOrdersService;
@@ -22,11 +22,28 @@ namespace WebBanHang.Controllers.OrderController
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetOrders([FromQuery] AdminOrderQueryDto queryDto)
+
+        [HttpGet]
+        public async Task<IActionResult> GetOrders(
+            [FromQuery] string? status,
+            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = await _adminOrdersService.GetOrdersAsync(queryDto);
+
+                var result = await _adminOrdersService.GetOrdersAsync(
+                    status,
+                    search,
+                    startDate,
+                    endDate,
+                    page,
+                    pageSize
+                );
+
                 return Ok(ApiResponse<AdminOrderListResponseDto>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
             }
             catch (Exception ex)

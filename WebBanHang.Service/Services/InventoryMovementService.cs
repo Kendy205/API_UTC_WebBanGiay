@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebBanHang.Service.IServices;
 using WebBanHang.Model;
+using WebBanHang.Model.Enums;
 using WebBanHang.Repository.UnitOfWork;
 using WebBanHang.Service.DTOs.Model;
+using WebBanHang.Service.DTOs.Order;
+using WebBanHang.Service.IServices;
 
 namespace WebBanHang.Service.Services
 {
@@ -19,6 +22,8 @@ namespace WebBanHang.Service.Services
             _mapper = mapper;
         }
 
+        // ================= TRUY VẤN CƠ BẢN =================
+
         public async Task<IEnumerable<InventoryMovementDto>> GetAllAsync()
         {
             var entities = await _unitOfWork.InventoryMovement.GetAllAsync();
@@ -27,14 +32,76 @@ namespace WebBanHang.Service.Services
 
         public async Task<InventoryMovementDto?> GetByIdAsync(long id)
         {
-            // Tạm thời gọi GetFirstOrDefaultAsync, bạn nhớ truyền biểu thức lambda khớp với tên khóa chính (ví dụ x => x.InventoryMovementId == id) vào nhé.
             var entity = await _unitOfWork.InventoryMovement.GetFirstOrDefaultAsync(x => x.MovementId == id);
-            return _mapper.Map<InventoryMovementDto>(entity); // TODO: Cập nhật lại biểu thức tìm kiếm ID tại đây
+            return _mapper.Map<InventoryMovementDto>(entity);
         }
+
+        // ================= NGHIỆP VỤ KHO CHI TIẾT =================
+
+        /// <summary>
+        /// Xử lý trừ kho và ghi log khi đặt hàng
+        /// </summary>
+        public async Task HandleCheckoutAsync(Order order, IEnumerable<CartItemLocalDto> items, long userId)
+        {
+            foreach (var item in items)
+            {
+                // 1. Trừ kho nguyên tử (Atomic Update)
+                var success = await _unitOfWork.ProductVariant.TryDecreaseStockAsync(item.VariantId, item.Quantity);
+
+                if (!success)
+                {
+                    // Lấy thông tin sản phẩm để báo lỗi chi tiết
+                    var v = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(x => x.VariantId == item.VariantId, "Product");
+                    throw new Exception($"Sản phẩm {v?.Product?.ProductName} đã hết hàng hoặc không đủ số lượng.");
+                }
+
+                // 2. Tạo bản ghi biến động kho (Loại OUT)
+                await _unitOfWork.InventoryMovement.AddAsync(new InventoryMovement
+                {
+                    VariantId = item.VariantId,
+                    MovementType = InventoryMovementType.OUT.ToString(),
+                    Quantity = item.Quantity,
+                    ReferenceType = "order",
+                    ReferenceId = order.OrderId,
+                    Note = $"Xuất kho cho đơn hàng: {order.OrderCode}",
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            // Lưu thay đổi (SaveAsync) sẽ do UnitOfWork ở MyOrdersService thực hiện để đảm bảo Transaction
+        }
+
+        /// <summary>
+        /// Xử lý hoàn kho khi đơn hàng bị hủy
+        /// </summary>
+        public async Task HandleOrderCancelAsync(Order order, long userId)
+        {
+            if (order.OrderItems == null) return;
+
+            foreach (var item in order.OrderItems)
+            {
+                // 1. Cộng lại kho
+                await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+
+                // 2. Tạo bản ghi biến động kho (Loại IN)
+                await _unitOfWork.InventoryMovement.AddAsync(new InventoryMovement
+                {
+                    VariantId = item.VariantId,
+                    MovementType = InventoryMovementType.IN.ToString(),
+                    Quantity = item.Quantity,
+                    ReferenceType = "order_cancel",
+                    ReferenceId = order.OrderId,
+                    Note = $"Hoàn kho do hủy đơn: {order.OrderCode}",
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        // ================= CÁC HÀM CRUD KHÁC =================
 
         public async Task AddAsync(InventoryMovementDto dto)
         {
-            ValidateForWrite(dto);
             var entity = _mapper.Map<InventoryMovement>(dto);
             await _unitOfWork.InventoryMovement.AddAsync(entity);
             await _unitOfWork.SaveAsync();
@@ -42,20 +109,16 @@ namespace WebBanHang.Service.Services
 
         public async Task AddRangeAsync(IEnumerable<InventoryMovementDto> dtos)
         {
-            foreach (var dto in dtos)
+            var entities = _mapper.Map<IEnumerable<InventoryMovement>>(dtos);
+            foreach (var entity in entities)
             {
-                ValidateForWrite(dto);
-                var entity = _mapper.Map<InventoryMovement>(dto);
                 await _unitOfWork.InventoryMovement.AddAsync(entity);
             }
-
-            // Save một lần để phục vụ các flow Order cần ghi movement theo lô.
             await _unitOfWork.SaveAsync();
         }
 
         public async Task UpdateAsync(long id, InventoryMovementDto dto)
         {
-            // TODO: Tìm entity cũ theo id, sau đó map đè dữ liệu
             var entity = await _unitOfWork.InventoryMovement.GetFirstOrDefaultAsync(x => x.MovementId == id);
             if (entity != null)
             {
@@ -67,25 +130,11 @@ namespace WebBanHang.Service.Services
 
         public async Task DeleteAsync(long id)
         {
-            // TODO: Tìm entity cũ theo id, sau đó xóa
             var entity = await _unitOfWork.InventoryMovement.GetFirstOrDefaultAsync(x => x.MovementId == id);
             if (entity != null)
             {
                 _unitOfWork.InventoryMovement.Remove(entity);
                 await _unitOfWork.SaveAsync();
-            }
-        }
-
-        private static void ValidateForWrite(InventoryMovementDto dto)
-        {
-            if (dto.Quantity <= 0)
-            {
-                throw new ArgumentException("Inventory movement quantity must be greater than 0.");
-            }
-
-            if (dto.CreatedBy <= 0)
-            {
-                throw new ArgumentException("Inventory movement createdBy is required.");
             }
         }
     }

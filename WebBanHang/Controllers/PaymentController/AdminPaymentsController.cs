@@ -20,17 +20,29 @@ namespace WebBanHang.Controllers.PaymentController
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPayments([FromQuery] AdminPaymentQueryDto queryDto)
+        public async Task<IActionResult> GetPayments(
+                [FromQuery] string? status,
+                [FromQuery] string? method,
+                [FromQuery] string? search,
+                [FromQuery] DateTime? startDate,
+                [FromQuery] DateTime? endDate,
+                [FromQuery] int page = 1,
+                [FromQuery] int pageSize = 10)
         {
-            var result = await _adminPaymentsService.GetPaymentsAsync(queryDto);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
-            }
+                // 1. Gọi Service lấy dữ liệu thô (DTO)
+                var result = await _adminPaymentsService.GetPaymentsAsync(
+                    status, method, search, startDate, endDate, page, pageSize);
 
-            return Ok(result);
+
+                return Ok(ApiResponse<AdminPaymentListResponseDto>.Succeeded(result, "Lấy danh sách thanh toán thành công"));
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
     }
 }
