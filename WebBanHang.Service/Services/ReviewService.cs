@@ -38,7 +38,7 @@ namespace WebBanHang.Service.Services
             if (dto == null) throw new ArgumentNullException(nameof(dto));
             if (dto.UserId <= 0) throw new InvalidOperationException("UserId is required to create a review.");
 
-            // 1. Load order item and its order to validate purchase & payment status
+            
             var orderItem = await _unitOfWork.OrderItem.GetFirstOrDefaultAsync(
                 oi => oi.OrderItemId == dto.OrderItemId,
                 includeProperties: "Order"
@@ -50,16 +50,16 @@ namespace WebBanHang.Service.Services
             if (orderItem.Order == null)
                 throw new InvalidOperationException("Related order not found for the order item.");
 
-            // 2. Ensure the order has been paid
-            //    PaymentStatus values: e.g. "unpaid" | "paid" | "failed" | "refunded"
+            
+           
             if (!string.Equals(orderItem.Order.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Order must be paid before leaving a review.");
 
-            // 3. Ensure the user who posts the review is the purchaser of this order item
+            
             if (orderItem.Order.UserId != dto.UserId)
                 throw new InvalidOperationException("User is not the purchaser of this order item.");
 
-            // 4. Ensure the user hasn't already reviewed this order item (one review per order-item per user)
+           
             var existing = await _unitOfWork.Review.GetFirstOrDefaultAsync(
                 r => r.OrderItemId == dto.OrderItemId && r.UserId == dto.UserId
             );

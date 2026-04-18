@@ -48,7 +48,9 @@ namespace WebBanHang.Service.Services
                 filter: x => x.UserId == currentUserId,
                 includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color",
                 pageSize: pageSize,
-                pageNumber: pageNumber
+                pageNumber: pageNumber,
+                orderBy: q => q.OrderByDescending(o => o.CreatedAt)
+
             );
 
             // 1. Đếm tổng số đơn hàng của người dùng hiện tại

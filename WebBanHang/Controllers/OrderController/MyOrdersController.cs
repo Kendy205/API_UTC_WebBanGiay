@@ -28,14 +28,14 @@ namespace WebBanHang.Controllers.OrderController
 
         [HttpGet]
         public async Task<IActionResult> GetMyOrders(
-                [FromQuery] int pageNumber = 1,
+                [FromQuery] int page = 1,
                 [FromQuery] int pageSize = 10)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userId = long.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
 
-            var result = await _myOrdersService.GetMyOrdersAsync(userId, pageNumber, pageSize);
+            var result = await _myOrdersService.GetMyOrdersAsync(userId, page, pageSize);
             return Ok(ApiResponse<PagedResult<OrderDto>>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
         }
 

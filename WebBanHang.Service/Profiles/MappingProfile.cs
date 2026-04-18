@@ -94,6 +94,7 @@ namespace WebBanHang.Service.Profiles
                .ForMember(dest => dest.SubtotalAmount, opt => opt.MapFrom(src => src.SubtotalAmount)) // Đúng tên trong OrderDto
                .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.TotalAmount))       // Đúng tên trong OrderDto
                .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems))         // Khớp với List<OrderItemDto>
+               //.ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.))         // Khớp với List<OrderItemDto>
                .ReverseMap();
             //
             CreateMap<Address, AddressDto>();
@@ -113,6 +114,7 @@ namespace WebBanHang.Service.Profiles
                  .ForMember(dest => dest.OrderItemId, opt => opt.MapFrom(src => src.OrderItemId))
                 .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.OrderId))
                 .ForMember(dest => dest.VariantId, opt => opt.MapFrom(src => src.VariantId))
+                .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductVariant != null ? src.ProductVariant.Product.ProductId : 0))
                 // Map các trường Snapshot từ Entity sang DTO
                 .ForMember(dest => dest.ProductNameSnapshot, opt => opt.MapFrom(src => src.ProductNameSnapshot))
                 .ForMember(dest => dest.SizeLabelSnapshot, opt => opt.MapFrom(src => src.SizeLabelSnapshot))

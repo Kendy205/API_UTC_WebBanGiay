@@ -40,12 +40,12 @@ namespace WebBanHang.Repository
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
         {
             IQueryable<T> query = dbSet;
-            // 1. LỌC DỮ LIỆU (Filter)
+           
             if (filter != null)
             {
                 query = query.Where(filter);
             }
-            // 2. NỐI BẢNG (Include)
+            
             if (includeProperties != null)
             {
                 foreach (var includeProp in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -53,17 +53,17 @@ namespace WebBanHang.Repository
                     query = query.Include(includeProp);
                 }
             }
-            // 3. SẮP XẾP (OrderBy) 
+            
             if (orderBy != null)
             {
                 query = orderBy(query);
             }
-            // 4. PHÂN TRANG (Skip & Take) 
+       
             if (pageSize.HasValue && pageNumber.HasValue)
             {
                 query = query.Skip((pageNumber.Value - 1) * pageSize.Value).Take(pageSize.Value);
             }
-            // 5. THỰC THI TRUY VẤN
+           
             return await query.ToListAsync();
         }
 
