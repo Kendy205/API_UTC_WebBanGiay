@@ -253,8 +253,8 @@ namespace WebBanHang.Service.Services
                 throw new Exception("Đơn hàng này đã được hủy trước đó.");
 
             // Chỉ cho phép hủy khi đơn hàng đang chờ hoặc đã xác nhận nhưng chưa giao/đóng gói
-            if (order.OrderStatus != OrderStatus.Pending.ToString().ToLower() &&
-                order.OrderStatus != OrderStatus.Confirmed.ToString().ToLower())
+            if (order.OrderStatus.ToLower() != OrderStatus.Pending.ToString().ToLower() &&
+                order.OrderStatus.ToLower() != OrderStatus.Confirmed.ToString().ToLower())
             {
                 throw new Exception("Đơn hàng đang trong quá trình vận chuyển, không thể hủy.");
             }
