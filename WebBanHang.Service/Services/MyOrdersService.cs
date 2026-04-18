@@ -186,6 +186,11 @@ namespace WebBanHang.Service.Services
 
         private Order CreateOrderHeader(long userId, long addressId, CheckoutDto dto)
         {
+            decimal shippingFee = dto.ShippingFee ?? (dto.DistanceKM.HasValue ? CalculateLineTotal(dto.DistanceKM.Value) : 0);
+            if( shippingFee != dto.ShippingFee)
+            {
+                throw new Exception("Khoảng cách vận chuyển không hợp lệ hoặc không được cung cấp, vui lòng kiểm tra lại.");
+            }    
             return new Order
             {
                 UserId = userId,
@@ -195,11 +200,19 @@ namespace WebBanHang.Service.Services
                 PaymentStatus = PaymentStatus.Unpaid.ToString(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                ShippingFee = dto.ShippingFee ?? 30000,
+                ShippingFee = shippingFee,
                 OrderItems = new List<OrderItem>()
             };
         }
-
+        private decimal CalculateLineTotal(decimal DistanceKM)
+        {
+            if (DistanceKM <= 0) return 0;
+            if (DistanceKM <= 5) return 15000;
+            if (DistanceKM <= 15) return 25000;
+            if (DistanceKM <= 30) return 35000;
+            if (DistanceKM <= 50) return 50000;
+            return Math.Round(50000 + (DistanceKM - 50) * 800);
+        }
         private async Task<ProductVariant> GetVariantWithDetailsAsync(long variantId)
         {
             var variant = await _unitOfWork.ProductVariant
