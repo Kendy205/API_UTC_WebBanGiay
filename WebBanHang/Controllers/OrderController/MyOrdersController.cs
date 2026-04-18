@@ -134,15 +134,7 @@ namespace WebBanHang.Controllers.OrderController
         [AllowAnonymous] // VNPay gọi ngầm vào đây nên không bắt Auth nhé
         public async Task<IActionResult> VnPayReturn()
         {
-            // 1. Gọi Service để Verify chữ ký và Cập nhật DB
-            // Service sẽ tự kiểm tra mã 00 và đổi PaymentStatus thành Paid
-            //var response = await _paymentService.ProcessVnPayReturn(Request.Query);
-
-            //// 2. Lấy toàn bộ chuỗi query params gốc từ VNPay (VD: ?vnp_Amount=500000&vnp_ResponseCode=00...)
-            //var queryString = Request.QueryString.Value;
-
-            //// 3. Redirect về React (Port 5173 của Vite) kèm theo query params
-            //return Redirect($"http://localhost:5173/vnpay-return{queryString}");
+           
             try
             {
                 // 1. Gọi Service xử lý DB

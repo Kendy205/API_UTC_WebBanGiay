@@ -40,9 +40,9 @@ namespace WebBanHang.Service.Services
 
             Expression<Func<Order, bool>> filter = x =>
                 (string.IsNullOrEmpty(status) || x.OrderStatus.ToLower() == status.ToLower()) &&
-                (string.IsNullOrEmpty(search) || x.OrderCode.Contains(search) || x.User.FullName.Contains(search)) &&
+                (string.IsNullOrEmpty(search) || x.OrderCode.Contains(search) || x.User.FullName.Contains(search) || x.OrderId.ToString().Contains(search)  &&
                 (!startDate.HasValue || x.CreatedAt >= startDate.Value) &&
-                (!endDate.HasValue || x.CreatedAt <= endDate.Value);
+                (!endDate.HasValue || x.CreatedAt <= endDate.Value));
 
             var orders = await _unitOfWork.Order.GetAllAsync(filter, "User,OrderItems,Payments", pageSize, page);
             var totalCount = await _unitOfWork.Order.CountAsync(filter);
