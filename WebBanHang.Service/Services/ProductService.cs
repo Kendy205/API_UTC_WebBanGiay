@@ -87,31 +87,40 @@ namespace WebBanHang.Service.Services
             }
         }
 
-        public async Task<PagedResult<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId, long? brandId, decimal? minPrice, decimal? maxPrice, int pageNumber, int pageSize)
+        public async Task<PagedResult<ProductDto>> GetFilteredProductsAsync(string? keyword,
+        long? categoryId, long? brandId, decimal? minPrice,
+        decimal? maxPrice, int pageNumber, int pageSize, string? sortBy)
         {
             Expression<Func<Product, bool>> filter = x => x.IsActive &&
-        (string.IsNullOrEmpty(keyword) || x.ProductName.Contains(keyword)) &&
-        (!categoryId.HasValue || x.CategoryId == categoryId) &&
-        (!brandId.HasValue || x.BrandId == brandId) &&
-        (!minPrice.HasValue || x.BasePrice >= minPrice) &&
-        (!maxPrice.HasValue || x.BasePrice <= maxPrice);
+                (string.IsNullOrEmpty(keyword) ||  x.ProductName.Contains(keyword)) &&
+                (!categoryId.HasValue || x.CategoryId == categoryId) &&
+                (!brandId.HasValue || x.BrandId == brandId) &&
+                (!minPrice.HasValue || x.BasePrice >= minPrice) &&
+                (!maxPrice.HasValue || x.BasePrice <= maxPrice);
 
             int totalCount = await _unitOfWork.Product.CountAsync(filter);
-
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderLogic = sortBy switch
+            {
+                "priceAsc" => q => q.OrderBy(p => p.BasePrice),
+                "priceDesc" => q => q.OrderByDescending(p => p.BasePrice),
+                "nameAsc" => q => q.OrderBy(p => p.ProductName),
+                "newest" => q => q.OrderByDescending(p => p.ProductId),
+                _=> q => q.OrderByDescending(p => p.ProductId)
+            };
             var entities = await _unitOfWork.Product.GetAllAsync(
                 filter: filter,
                 includeProperties: "Category,Brand",
                 pageSize: pageSize,
                 pageNumber: pageNumber,
-                orderBy: q => q.OrderByDescending(p => p.ProductId) // Đảm bảo hàng mới hiện lên đầu
+                orderBy: orderLogic
 
             );
             return new PagedResult<ProductDto>
             {
-                Data = _mapper.Map<IEnumerable<ProductDto>>(entities), // 8 sản phẩm
-                Total = totalCount,   // Tổng số ví dụ: 10
-                Page = pageNumber,    // Trang hiện tại
-                PageSize = pageSize   // 8
+                Data = _mapper.Map<IEnumerable<ProductDto>>(entities),
+                Total = totalCount,
+                Page = pageNumber,
+                PageSize = pageSize
             };
         }
     }

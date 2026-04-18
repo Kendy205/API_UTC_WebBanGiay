@@ -9,7 +9,7 @@ namespace WebBanHang.Controllers.UserController
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;

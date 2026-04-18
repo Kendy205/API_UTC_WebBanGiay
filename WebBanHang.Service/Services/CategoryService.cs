@@ -21,6 +21,11 @@ namespace WebBanHang.Service.Services
 
         public async Task<IEnumerable<CategoryDto>> GetAllAsync()
         {
+            var entities = await _unitOfWork.Category.GetAllAsync(c => c.IsActive ==true);
+            return _mapper.Map<IEnumerable<CategoryDto>>(entities);
+        }
+        public async Task<IEnumerable<CategoryDto>> GetAllByAdminAsync()
+        {
             var entities = await _unitOfWork.Category.GetAllAsync();
             return _mapper.Map<IEnumerable<CategoryDto>>(entities);
         }

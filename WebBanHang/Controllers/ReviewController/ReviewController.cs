@@ -21,12 +21,7 @@ namespace WebBanHang.Controllers.ReviewController
             _reviewService = reviewService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var items = await _reviewService.GetAllAsync();
-            return Ok(items);
-        }
+
 
         // Admin endpoint: GET /api/Admin/reviews?page=1&pageSize=10&rating=5
         [HttpGet("/api/Admin/reviews")]
@@ -76,21 +71,7 @@ namespace WebBanHang.Controllers.ReviewController
             if (item == null) return NotFound();
             return Ok(item);
         }
-        // Admin: set visibility
-        // PUT /api/Admin/reviews/{id}/visibility
-
-
-
-        // New endpoint: accepts payload with OrderItemId, ProductId, VariantId, userId, rating, ReviewContent
-        // Example:
-        // {
-        //   "OrderItemId": "6",
-        //   "ProductId": "16",
-        //   "VariantId": "16",
-        //   "userId": "123",         // optional if using JWT
-        //   "rating": "5",
-        //   "ReviewContent":"dsfgsdfgdf"
-        // }
+        
         [HttpPost("rating")]
         [Authorize] // keep or remove depending on whether you want anonymous reviews
         public async Task<IActionResult> CreateDetailedRating([FromBody] CreateReviewRequest request)
@@ -98,7 +79,7 @@ namespace WebBanHang.Controllers.ReviewController
             if (request == null) return BadRequest();
             if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-            // If JWT present, prefer authenticated user id
+          
             if (User?.Identity?.IsAuthenticated == true)
             {
                 var idClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
@@ -114,11 +95,11 @@ namespace WebBanHang.Controllers.ReviewController
                 return ValidationProblem(ModelState);
             }
 
-            // Map request to ReviewDto (service will handle persistence)
+          
             var dto = new ReviewDto
             {
                 OrderItemId = request.OrderItemId.Value,
-                UserId = request.UserId ?? 0, // if 0, service or DB constraints should validate
+                UserId = request.UserId ?? 0,
                 Rating = request.Rating,
                 ReviewTitle = request.ReviewTitle,
                 ReviewContent = request.ReviewContent
@@ -145,14 +126,7 @@ namespace WebBanHang.Controllers.ReviewController
             return NoContent();
         }
 
-        //[HttpDelete("{id:long}")]
-        //public async Task<IActionResult> Delete(long id)
-        //{
-        //    var existing = await _reviewService.GetByIdAsync(id);
-        //    if (existing == null) return NotFound();
-        //    await _reviewService.DeleteAsync(id);
-        //    return NoContent();
-        //}
+        
         [HttpGet("product/{productId:long}")]
         public async Task<IActionResult> GetReviewByProductId(long productId)
         {

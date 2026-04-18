@@ -19,7 +19,6 @@ namespace WebBanHang.Controllers.DashBoardController
             _dashboardService = dashboardService;
         }
 
-        /// Get analytics overview with total revenue, orders, new customers, and status breakdown
         [HttpGet("overview")]
         public async Task<IActionResult> GetAnalyticsOverview([FromQuery] int year)
         {

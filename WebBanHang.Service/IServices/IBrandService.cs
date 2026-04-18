@@ -7,6 +7,8 @@ namespace WebBanHang.Service.IServices
     public interface IBrandService
     {
         Task<IEnumerable<BrandDto>> GetAllAsync();
+        Task<IEnumerable<BrandDto>> GetAllByAdminAsync();
+        
         Task<BrandDto?> GetByIdAsync(long id);
         Task AddAsync(BrandDto dto);
         Task UpdateAsync(long id, BrandDto dto);

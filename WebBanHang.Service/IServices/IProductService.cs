@@ -12,6 +12,6 @@ namespace WebBanHang.Service.IServices
         Task<ProductDto> AddAsync(ProductDto dto, IFormFile file);
         Task UpdateAsync(long id, ProductDto dto);
         Task DeleteAsync(long id);
-        Task<PagedResult<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId, long? brandId, decimal? minPrice, decimal? maxPrice, int pageNumber, int pageSize);
+        Task<PagedResult<ProductDto>> GetFilteredProductsAsync(string? keyword, long? categoryId, long? brandId, decimal? minPrice, decimal? maxPrice, int pageNumber, int pageSize, string? sortBy);
     }
 }

@@ -19,10 +19,6 @@ namespace WebBanHang.Controllers.DashBoardController
             _dashboardService = dashboardService;
         }
 
-        /// Get sales report for a date range grouped by specified period
-        /// <param name="from">Start date (ISO format: yyyy-MM-dd)</param>
-        /// <param name="to">End date (ISO format: yyyy-MM-dd)</param>
-        /// <param name="groupBy">Grouping option: "day", "week", or "month" (default: "day")</param>
         [HttpGet("sales")]
         public async Task<IActionResult> GetSalesReport(
      [FromQuery] DateTime? from,

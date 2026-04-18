@@ -79,15 +79,11 @@ namespace WebBanHang.Controllers.ProductController
         //    return Ok(ApiResponse<string>.Succeeded(null, "Xóa sản phẩm thành công!"));
         //}
 
-
         [HttpGet("filter")]
-
-        public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber, [FromQuery] int pageSize)
+        public async Task<IActionResult> FilterProducts([FromQuery] string? keyword, [FromQuery] long? categoryId, [FromQuery] long? brandId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice, [FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? sortBy = "newest")
         {
-
             var validPageNumber = pageNumber > 0 ? pageNumber : 1;
             var validPageSize = pageSize > 0 ? pageSize : 8;
-
             var result = await _productService.GetFilteredProductsAsync(
                 keyword,
                 categoryId,
@@ -95,9 +91,11 @@ namespace WebBanHang.Controllers.ProductController
                 minPrice,
                 maxPrice,
                 validPageNumber,
-                validPageSize);
-
+                validPageSize,
+                sortBy
+                );
             return Ok(ApiResponse<PagedResult<ProductDto>>.Succeeded(result, "Lấy danh sách sản phẩm thành công!"));
         }
+
     }
 }
