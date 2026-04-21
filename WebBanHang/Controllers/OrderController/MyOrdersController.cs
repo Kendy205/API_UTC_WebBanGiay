@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using WebBanHang.Service.DTOs.Common;
@@ -32,13 +34,7 @@ namespace WebBanHang.Controllers.OrderController
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
 
             var result = await _myOrdersService.GetMyOrdersAsync(userId);
-            if (!result.Success)
-            {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
-            }
-            return Ok(result);
+            return Ok(ApiResponse<IEnumerable<OrderDto>>.Succeeded(result, "Lấy danh sách đơn hàng thành công"));
         }
 
         [HttpGet("{id:long}")]
@@ -49,13 +45,11 @@ namespace WebBanHang.Controllers.OrderController
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
 
             var result = await _myOrdersService.GetMyOrderByIdAsync(id, userId);
-            if (!result.Success)
+            if (result == null)
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                return NotFound(ApiResponse<OrderDto>.Failed("Đơn hàng không tồn tại.", 404));
             }
-            return Ok(result);
+            return Ok(ApiResponse<OrderDto>.Succeeded(result, "Lấy chi tiết đơn hàng thành công"));
         }
 
         [HttpPost("checkout")]
@@ -65,14 +59,15 @@ namespace WebBanHang.Controllers.OrderController
             var userId = long.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
 
-            var result = await _myOrdersService.CheckoutAsync(dto, userId);
-            if (!result.Success)
+            try
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                var result = await _myOrdersService.CheckoutAsync(dto, userId);
+                return Ok(ApiResponse<OrderDto>.Succeeded(result, "Đặt hàng thành công", 201));
             }
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
 
         [HttpPost("{id:long}/cancel")]
@@ -81,22 +76,27 @@ namespace WebBanHang.Controllers.OrderController
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userId = long.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : 0;
             if (userId == 0) return Unauthorized(ApiResponse<object>.Failed("Vui lòng đăng nhập", 401));
+
             var order = await _myOrdersService.GetMyOrderByIdAsync(id, userId);
-            if(order.Success && order.Data != null)
+            if (order == null)
             {
-                if (order.Data.PaymentStatus == "Paid" || order.Data.PaymentStatus == "Success")
-                {
-                    return BadRequest(ApiResponse<string>.Failed("Không thể hủy đơn hàng đã thanh toán!", 400));
-                }
+                return NotFound(ApiResponse<string>.Failed("Đơn hàng không tồn tại.", 404));
             }
-            var result = await _myOrdersService.CancelMyOrderAsync(id, userId);
-            if (!result.Success)
+
+            if (order.PaymentStatus == "Paid" || order.PaymentStatus == "Success")
             {
-                return result.StatusCode == 404
-                    ? NotFound(result)
-                    : BadRequest(result);
+                return BadRequest(ApiResponse<string>.Failed("Không thể hủy đơn hàng đã thanh toán!", 400));
             }
-            return Ok(result);
+
+            try
+            {
+                var result = await _myOrdersService.CancelMyOrderAsync(id, userId);
+                return Ok(ApiResponse<bool>.Succeeded(result, "Hủy đơn hàng thành công"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<string>.Failed(ex.Message));
+            }
         }
         [HttpPost("{orderId}/pay-vnpay")]
         public async Task<IActionResult> GetVnPayUrl(long orderId)
@@ -104,20 +104,20 @@ namespace WebBanHang.Controllers.OrderController
             // 1. Kiểm tra xem đơn hàng có tồn tại và có thuộc về user đang đăng nhập không
             var orderResult = await _myOrdersService.GetMyOrderByIdAsync(orderId, long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"));
 
-            if (!orderResult.Success || orderResult.Data == null)
+            if ( orderResult  == null)
             {
                 return NotFound(orderResult); // Lỗi 404 nếu không tìm thấy
             }
 
             // 2. Chặn lại nếu đơn hàng đã được thanh toán rồi
-            if (orderResult.Data.PaymentStatus == "Paid" || orderResult.Data.PaymentStatus == "Success")
+            if (orderResult.PaymentStatus == "Paid" || orderResult.PaymentStatus == "Success")
             {
                 return BadRequest(new { success = false, message = "Đơn hàng này đã được thanh toán trước đó." });
             }
 
             // 3. Sinh link VNPay bằng PaymentService
             // Truyền OrderDto và HttpContext (để lấy IP người dùng) sang Service
-            string url = _paymentService.CreateVnPayPaymentUrl(orderResult.Data, HttpContext);
+            string url = _paymentService.CreateVnPayPaymentUrl(orderResult, HttpContext);
 
             // 4. Trả link về cho React
             //return Ok(new

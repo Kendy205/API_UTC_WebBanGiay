@@ -18,35 +18,37 @@ namespace WebBanHang.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IAddressService _addressService;
+        private readonly IInventoryMovementService _inventoryMovementService;
 
-        public MyOrdersService(IUnitOfWork unitOfWork, IMapper mapper, IAddressService addressService)
+        public MyOrdersService(IUnitOfWork unitOfWork, IMapper mapper, IAddressService addressService, IInventoryMovementService inventoryMovementService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _addressService = addressService;
+            _inventoryMovementService = inventoryMovementService;
         }
 
-        public async Task<ApiResponse<IEnumerable<OrderDto>>> GetMyOrdersAsync(long currentUserId)
+        public async Task<IEnumerable<OrderDto>> GetMyOrdersAsync(long currentUserId)
         {
             var entities = await _unitOfWork.Order.GetAllAsync(x => x.UserId == currentUserId, includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color");
-            return ApiResponse<IEnumerable<OrderDto>>.Succeeded(_mapper.Map<IEnumerable<OrderDto>>(entities), "Lấy danh sách đơn hàng thành công");
+            return _mapper.Map<IEnumerable<OrderDto>>(entities);
         }
 
-        public async Task<ApiResponse<OrderDto?>> GetMyOrderByIdAsync(long orderId, long currentUserId)
+        public async Task<OrderDto?> GetMyOrderByIdAsync(long orderId, long currentUserId)
         {
             var entity = await _unitOfWork.Order.GetFirstOrDefaultAsync(
-                x => x.OrderId == orderId && x.UserId == currentUserId, 
+                x => x.OrderId == orderId && x.UserId == currentUserId,
                 includeProperties: "OrderItems,ShippingAddress,OrderItems.ProductVariant.Product,OrderItems.ProductVariant.Size,OrderItems.ProductVariant.Color");
 
-            if (entity == null) return ApiResponse<OrderDto?>.Failed("Đơn hàng không tồn tại.", 404);
-            return ApiResponse<OrderDto?>.Succeeded(_mapper.Map<OrderDto>(entity), "Lấy chi tiết đơn hàng thành công");
+            if (entity == null) return null;
+            return _mapper.Map<OrderDto>(entity);
         }
 
-        public async Task<ApiResponse<OrderDto>> CheckoutAsync(CheckoutDto checkoutDto, long currentUserId)
+        public async Task<OrderDto> CheckoutAsync(CheckoutDto checkoutDto, long currentUserId)
         {
             if (checkoutDto.Items == null || !checkoutDto.Items.Any())
             {
-                return ApiResponse<OrderDto>.Failed("Danh sách sản phẩm đặt hàng không hợp lệ.", 400);
+                throw new Exception("Danh sách sản phẩm đặt hàng không hợp lệ.");
             }
 
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
@@ -54,8 +56,8 @@ namespace WebBanHang.Service.Services
                 try
                 {
                     var activeCart = await _unitOfWork.Cart.GetFirstOrDefaultAsync(x => x.UserId == currentUserId && x.Status == "active", includeProperties: "CartItems");
-                    if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any()) 
-                        return ApiResponse<OrderDto>.Failed("Giỏ hàng trống or đang bảo trì", 400);
+                    if (activeCart == null || activeCart.CartItems == null || !activeCart.CartItems.Any())
+                        throw new Exception("Giỏ hàng trống.");
 
                     long finalAddressId = 0;
                     if (checkoutDto.NewAddress != null)
@@ -66,12 +68,12 @@ namespace WebBanHang.Service.Services
                         finalAddressId = addresses.OrderByDescending(a => a.AddressId).First().AddressId;
                     }
                     else if (checkoutDto.ShippingAddressId.HasValue) finalAddressId = checkoutDto.ShippingAddressId.Value;
-                    else return ApiResponse<OrderDto>.Failed("Thiếu địa chỉ.", 400);
+                    else throw new Exception("Thiếu địa chỉ.");
 
                     if (checkoutDto.ShippingAddressId.HasValue)
                     {
                         var address = await _unitOfWork.Address.GetFirstOrDefaultAsync(a => a.AddressId == finalAddressId && a.UserId == currentUserId);
-                        if (address == null) return ApiResponse<OrderDto>.Failed("Địa chỉ giao hàng không hợp lệ.", 400);
+                        if (address == null) throw new Exception("Địa chỉ giao hàng không hợp lệ.");
                     }
 
                     var order = new Order
@@ -88,14 +90,15 @@ namespace WebBanHang.Service.Services
 
                     decimal subtotal = 0;
                     var requestedIds = checkoutDto.Items.Select(item => item.VariantId).ToList();
+                    var movements = new List<InventoryMovementDto>();
 
                     foreach (var itemDto in checkoutDto.Items)
                     {
                         var variant = await _unitOfWork.ProductVariant.GetFirstOrDefaultAsync(v => v.VariantId == itemDto.VariantId, includeProperties: "Product");
-                        if (variant == null) return ApiResponse<OrderDto>.Failed("Sản phẩm không tồn tại.", 404);
+                        if (variant == null) throw new Exception("Sản phẩm không tồn tại.");
                         
                         var decreased = await _unitOfWork.ProductVariant.TryDecreaseStockAsync(variant.VariantId, itemDto.Quantity);
-                        if (!decreased) return ApiResponse<OrderDto>.Failed($"Sản phẩm {variant.Product.ProductName} hết hàng.", 409);
+                        if (!decreased) throw new Exception($"Sản phẩm {variant.Product.ProductName} hết hàng.");
 
                         decimal price = variant.PriceOverride ?? variant.Product.SalePrice ?? variant.Product.BasePrice;
                         order.OrderItems.Add(new OrderItem { 
@@ -106,6 +109,16 @@ namespace WebBanHang.Service.Services
                             LineTotal = price * itemDto.Quantity 
                         });
                         subtotal += price * itemDto.Quantity;
+
+                        movements.Add(new InventoryMovementDto
+                        {
+                            VariantId = variant.VariantId,
+                            MovementType = InventoryMovementType.OUT.ToString(),
+                            Quantity = itemDto.Quantity,
+                            ReferenceType = "order",
+                            Note = $"Order checkout: {order.OrderCode}",
+                            CreatedBy = currentUserId
+                        });
                     }
 
                     order.SubtotalAmount = subtotal;
@@ -114,41 +127,71 @@ namespace WebBanHang.Service.Services
                     await _unitOfWork.Order.AddAsync(order);
                     await _unitOfWork.SaveAsync();
 
+                    // Cập nhật ReferenceId cho các movement
+                    foreach (var m in movements)
+                    {
+                        m.ReferenceId = order.OrderId;
+                    }
+                    await _inventoryMovementService.AddRangeAsync(movements);
+
                     // CẬP NHẬT GIỎ HÀNG: Xóa các item đã mua
                     var purchasedCartItems = activeCart.CartItems.Where(ci => requestedIds.Contains(ci.VariantId)).ToList();
                     foreach (var pi in purchasedCartItems)
                     {
                         _unitOfWork.CartItem.Remove(pi);
                     }
-                    activeCart.Status = activeCart.CartItems.Count == purchasedCartItems.Count ? "converted" : "active";
+                    // Project only uses "active" cart status currently.
+                    activeCart.Status = "active";
                     activeCart.UpdatedAt = DateTime.UtcNow;
                     _unitOfWork.Cart.Update(activeCart);
                     await _unitOfWork.SaveAsync();
 
                     await transaction.CommitAsync();
-                    return ApiResponse<OrderDto>.Succeeded(_mapper.Map<OrderDto>(order), "Đặt hàng thành công", 201);
+                    return _mapper.Map<OrderDto>(order);
                 }
                 catch (Exception) { await transaction.RollbackAsync(); throw; }
             }
         }
 
-        public async Task<ApiResponse<bool>> CancelMyOrderAsync(long orderId, long currentUserId)
+        public async Task<bool> CancelMyOrderAsync(long orderId, long currentUserId)
         {
-            var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId && o.UserId == currentUserId, includeProperties: "OrderItems");
-            if (order == null) return ApiResponse<bool>.Failed("Không thấy đơn hàng.", 404);
-
-            if (order.OrderStatus == OrderStatus.Cancelled.ToString()) return ApiResponse<bool>.Failed("Đơn hàng đã hủy trước đó.", 400);
-
-            foreach (var item in order.OrderItems) 
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
-                await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+                try
+                {
+                    var order = await _unitOfWork.Order.GetFirstOrDefaultAsync(o => o.OrderId == orderId && o.UserId == currentUserId, includeProperties: "OrderItems");
+                    if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
+
+                    if (order.OrderStatus == OrderStatus.Cancelled.ToString()) throw new Exception("Đơn hàng đã hủy trước đó.");
+
+                    var movements = new List<InventoryMovementDto>();
+                    foreach (var item in order.OrderItems) 
+                    {
+                        await _unitOfWork.ProductVariant.IncreaseStockAsync(item.VariantId, item.Quantity);
+                        movements.Add(new InventoryMovementDto
+                        {
+                            VariantId = item.VariantId,
+                            MovementType = InventoryMovementType.IN.ToString(),
+                            Quantity = item.Quantity,
+                            ReferenceType = "order_cancel",
+                            ReferenceId = order.OrderId,
+                            Note = $"Order cancelled by user: {order.OrderCode}",
+                            CreatedBy = currentUserId
+                        });
+                    }
+                    
+                    await _inventoryMovementService.AddRangeAsync(movements);
+
+                    order.OrderStatus = OrderStatus.Cancelled.ToString();
+                    order.UpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.Order.Update(order);
+                    await _unitOfWork.SaveAsync();
+
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception) { await transaction.RollbackAsync(); throw; }
             }
-            
-            order.OrderStatus = OrderStatus.Cancelled.ToString();
-            order.UpdatedAt = DateTime.UtcNow;
-            _unitOfWork.Order.Update(order);
-            await _unitOfWork.SaveAsync();
-            return ApiResponse<bool>.Succeeded(true, "Hủy đơn hàng thành công");
         }
     }
 }
